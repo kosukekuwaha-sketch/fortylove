@@ -7,6 +7,7 @@ import { MemberNav } from "@/components/member-nav";
 import { UserMenu } from "@/components/user-menu";
 import { UniversityFields } from "@/components/university-fields";
 import { AvatarInput } from "@/components/avatar-input";
+import { SiteFooter } from "@/components/site-footer";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
       </form>
       <form action={logout}><button className="secondary">ログアウト</button></form>
     </section>
+    <SiteFooter />
     <MemberNav active="profile" />
   </main>;
 }

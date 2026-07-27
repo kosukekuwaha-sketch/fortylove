@@ -8,6 +8,7 @@ import { MemberNav } from "@/components/member-nav";
 import { ClearRegistrationDraft } from "@/components/registration-draft";
 import { UserMenu } from "@/components/user-menu";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { SiteFooter } from "@/components/site-footer";
 
 export const dynamic = "force-dynamic";
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric", weekday: "short" }).format(new Date(iso));
@@ -43,6 +44,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
       })}</div>
       <section className="join-card"><div className="join-icon"><Sparkles /></div><div><p className="eyebrow">READY TO JOIN?</p><h2>{application ? application.status === "approved" ? "入会が承認されました！" : "入会申請を受け付けています" : "この春、一緒にテニスしませんか？"}</h2><p>{application ? "運営からの連絡をお待ちください。" : "いつでも入会を申請できます。まずは気軽に送ってみてください。"}</p></div>{!application && settings?.recruiting_open !== false && <form action={applyMembership}><ConfirmSubmitButton className="dark" message="Fortyloveへ入会申請しますか？">入会を申請する</ConfirmSubmitButton></form>}</section>
     </section>
+    <SiteFooter />
     <MemberNav active="home" />
   </main>;
 }

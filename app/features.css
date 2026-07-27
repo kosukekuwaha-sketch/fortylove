@@ -97,9 +97,49 @@
   text-align: left;
 }
 .profile-edit-form .full { grid-column: 1 / -1; }
+.site-footer {
+  display: flex;
+  width: min(1120px, calc(100% - 48px));
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 30px auto 0;
+  padding: 24px 28px;
+  border-top: 1px solid var(--line);
+}
+.site-footer > div { display: flex; align-items: center; gap: 13px; }
+.site-footer p { display: grid; gap: 3px; margin: 0; }
+.site-footer small { color: var(--muted); }
+.instagram-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  color: white;
+  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+}
+.instagram-mark svg { width: 22px; }
+.site-footer > a {
+  padding: 11px 16px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  font-size: 13px;
+  font-weight: 700;
+}
+.site-footer > a:hover { border-color: var(--green); color: var(--green); }
 @media (max-width: 800px) {
   .profile-status { grid-template-columns: 1fr; }
   .profile-status .primary { width: 100%; }
   .profile-edit-form { grid-template-columns: 1fr; }
   .profile-edit-form .full { grid-column: auto; }
+  .site-footer {
+    width: calc(100% - 28px);
+    align-items: stretch;
+    flex-direction: column;
+    margin-bottom: 12px;
+    padding: 22px 4px;
+  }
+  .site-footer > a { text-align: center; }
 }
