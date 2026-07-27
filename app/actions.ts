@@ -8,6 +8,17 @@ import { clearSession, getSession, setSession } from "@/lib/auth";
 
 const text = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
+function configuredSupabaseRole() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  if (key.startsWith("sb_secret_")) return "secret";
+  try {
+    const payload = JSON.parse(Buffer.from(key.split(".")[1], "base64url").toString());
+    return String(payload.role ?? "jwt-without-role");
+  } catch {
+    return key ? "unrecognized-key-format" : "missing";
+  }
+}
+
 export async function login(fd: FormData) {
   const name = text(fd, "name");
   const password = text(fd, "password");
@@ -17,6 +28,7 @@ export async function login(fd: FormData) {
       message: error.message,
       code: error.code,
       details: error.details,
+      configuredKeyRole: configuredSupabaseRole(),
     });
     redirect("/login?error=server");
   }
