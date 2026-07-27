@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LogOut, UserRound } from "lucide-react";
 import { logout } from "@/app/actions";
+import { ConfirmSubmitButton } from "./confirm-submit-button";
 
 export function UserMenu({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
   return (
@@ -12,7 +13,7 @@ export function UserMenu({ name, avatarUrl }: { name: string; avatarUrl?: string
         <p>{name}さん</p>
         <Link href="/profile"><UserRound />プロフィール編集</Link>
         <form action={logout}>
-          <button type="submit"><LogOut />ログアウト</button>
+          <ConfirmSubmitButton message="ログアウトしますか？"><LogOut />ログアウト</ConfirmSubmitButton>
         </form>
       </div>
     </details>

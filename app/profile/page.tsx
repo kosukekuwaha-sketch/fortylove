@@ -50,7 +50,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
         <button className="primary full">プロフィールを保存</button>
       </form>
       {application?.status === "approved" && <section className="withdraw-panel"><div><strong>退会手続き</strong><p>退会後もアカウントと過去の予約履歴は残ります。</p></div><form action={withdrawMembership}><ConfirmSubmitButton className="danger" message="Fortyloveを退会しますか？">退会する</ConfirmSubmitButton></form></section>}
-      <form action={logout}><button className="secondary">ログアウト</button></form>
+      <form action={logout}><ConfirmSubmitButton className="secondary" message="ログアウトしますか？">ログアウト</ConfirmSubmitButton></form>
     </section>
     <MemberNav active="profile" />
   </main>;
