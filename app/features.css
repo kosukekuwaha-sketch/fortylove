@@ -109,28 +109,29 @@
   background: var(--ink);
   color: white;
 }
+.member-shell { padding-bottom: 0; }
 .footer-main {
   display: grid;
   grid-template-columns: 1.1fr .65fr 1.5fr;
-  gap: 54px;
-  padding-bottom: 38px;
+  gap: 76px;
+  padding-bottom: 46px;
 }
 .footer-brand > strong { color: var(--lime); font-size: 24px; letter-spacing: .12em; }
 .footer-brand p { margin: 14px 0 0; color: #b8c7c0; font-size: 13px; line-height: 1.9; }
-.footer-nav { display: grid; align-content: start; gap: 10px; }
+.footer-nav { display: grid; align-content: start; gap: 15px; }
 .footer-nav strong,
 .footer-social > strong { margin-bottom: 3px; color: var(--lime); font-size: 11px; letter-spacing: .16em; }
 .footer-nav a { width: fit-content; color: #dbe4df; font-size: 13px; }
 .footer-nav a:hover { color: var(--lime); }
 .footer-social { min-width: 0; }
-.footer-social > small { display: block; margin: 6px 0 14px; color: #b8c7c0; }
-.social-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.footer-social > small { display: block; margin: 8px 0 20px; color: #b8c7c0; }
+.social-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .social-links > a,
 .social-link-disabled {
   display: flex;
   align-items: center;
   gap: 13px;
-  padding: 13px;
+  padding: 16px;
   border: 1px solid #ffffff24;
   border-radius: 12px;
   background: #ffffff0b;
@@ -169,10 +170,10 @@
   .profile-edit-form { grid-template-columns: 1fr; }
   .profile-edit-form .full { grid-column: auto; }
   .site-footer {
-    margin-bottom: 12px;
     padding: 38px 20px 94px;
   }
-  .footer-main { grid-template-columns: 1fr; gap: 32px; }
+  .footer-main { grid-template-columns: 1fr; gap: 42px; }
   .social-links { grid-template-columns: 1fr; }
   .footer-bottom { flex-direction: column; }
+  .profile-card { margin-bottom: 100px; }
 }
