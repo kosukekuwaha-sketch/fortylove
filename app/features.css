@@ -145,6 +145,34 @@
 .inline-role-form { display: flex; align-items: center; gap: 7px; }
 .inline-role-form select { min-width: 140px; padding: 8px; }
 .inline-role-form .table-action { flex: 0 0 auto; margin-left: 0; }
+.user-search { position: relative; }
+.user-search-results {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 14px 35px #17251f24;
+}
+.user-search-results button {
+  display: grid;
+  width: 100%;
+  gap: 3px;
+  padding: 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+.user-search-results button:hover { background: var(--cream); }
+.user-search-results small { color: var(--muted); font-weight: 400; }
 .admin-nav nav { margin-top: 32px; gap: 3px; }
 .admin-nav nav a { padding: 10px 12px; }
 .site-footer {
