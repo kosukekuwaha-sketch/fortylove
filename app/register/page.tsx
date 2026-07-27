@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Brand } from "@/components/brand";
+import { UniversityFields } from "@/components/university-fields";
 import { register } from "@/app/actions";
-
-const universities = ["早稲田大学", "日本女子大学", "東京女子大学"];
 
 export default async function Register({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
@@ -11,8 +10,7 @@ export default async function Register({ searchParams }: { searchParams: Promise
       {error && <div className="alert">{error === "duplicate" ? "同じ名前とパスワードの登録があります。別のパスワードを設定してください。" : error === "password" ? "パスワードは4文字以上で設定してください。" : "登録できませんでした。入力内容をご確認ください。"}</div>}
       <form action={register} className="grid-form">
         <label className="full">名前<input name="name" placeholder="山田 太郎" required /></label>
-        <label>大学<select name="university" required><option value="">選択してください</option>{universities.map(x => <option key={x}>{x}</option>)}</select></label>
-        <label>学部・学科<input name="faculty" placeholder="政治経済学部" required /></label>
+        <UniversityFields />
         <label>学年<select name="grade" required>{[1,2,3,4].map(x => <option key={x} value={x}>{x}年</option>)}</select></label>
         <label>メールアドレス<input name="email" type="email" placeholder="you@example.com" required /></label>
         <label>LINE ID（任意）<input name="line_id" placeholder="line_id" /></label>
