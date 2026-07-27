@@ -139,7 +139,17 @@ export async function updateProfile(fd: FormData) {
     ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
   };
   const { error } = await client.from("users").update(updates).eq("id", user.id);
-  if (error) redirect("/profile?error=update");
+  if (error) {
+    console.error("Profile database error", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      configuredKeyRole: configuredSupabaseRole(),
+    });
+    if (error.message.includes("avatar_url")) redirect("/profile?error=avatar-column");
+    redirect("/profile?error=update");
+  }
   await setSession({ ...user, name });
   redirect("/profile?saved=1");
 }
