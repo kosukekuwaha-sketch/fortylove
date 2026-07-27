@@ -94,6 +94,7 @@
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+.member-content > .join-card { margin: 0 0 38px; }
 .profile-edit-form {
   display: grid;
   grid-template-columns: 1fr 1fr;

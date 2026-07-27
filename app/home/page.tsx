@@ -32,6 +32,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>練習やイベントをチェックして、Fortyloveを楽しみましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
       {error === "full" && <div className="alert">申し訳ございません。定員がいっぱいになってしまっています。</div>}
+      <section className="join-card"><div className="join-icon"><Sparkles /></div><div><p className="eyebrow">READY TO JOIN?</p><h2>{application ? application.status === "approved" ? "入会が承認されました！" : "入会申請を受け付けています" : "この春、一緒にテニスしませんか？"}</h2><p>{application ? "運営からの連絡をお待ちください。" : "いつでも入会を申請できます。まずは気軽に送ってみてください。"}</p></div>{!application && settings?.recruiting_open !== false && <form action={applyMembership}><ConfirmSubmitButton className="dark" message="Fortyloveへ入会申請しますか？">入会を申請する</ConfirmSubmitButton></form>}</section>
       <div className="section-head"><div><p className="eyebrow green">UPCOMING</p><h2 id="events">これからのイベント</h2></div><span className="count">{events?.length ?? 0}件</span></div>
       <div className="event-list">{events?.map(event => {
         const booked = status.get(event.id) === "reserved";
@@ -42,7 +43,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
           <form action={booked ? cancelReservation : reserve}><input type="hidden" name="event_id" value={event.id}/><ConfirmSubmitButton className={booked ? "booked" : "reserve"} disabled={!booked && count >= event.capacity} message={booked ? `「${event.title}」の予約をキャンセルしますか？` : `「${event.title}」に参加予約しますか？`}>{booked ? "予約済み" : count >= event.capacity ? "満員" : "予約する"}</ConfirmSubmitButton></form>
         </article>;
       })}</div>
-      <section className="join-card"><div className="join-icon"><Sparkles /></div><div><p className="eyebrow">READY TO JOIN?</p><h2>{application ? application.status === "approved" ? "入会が承認されました！" : "入会申請を受け付けています" : "この春、一緒にテニスしませんか？"}</h2><p>{application ? "運営からの連絡をお待ちください。" : "いつでも入会を申請できます。まずは気軽に送ってみてください。"}</p></div>{!application && settings?.recruiting_open !== false && <form action={applyMembership}><ConfirmSubmitButton className="dark" message="Fortyloveへ入会申請しますか？">入会を申請する</ConfirmSubmitButton></form>}</section>
     </section>
     <SiteFooter />
     <MemberNav active="home" />
