@@ -64,7 +64,8 @@ export async function reserve(fd: FormData) {
   const client = db();
   const { data: event } = await client.from("events").select("capacity,starts_at").eq("id", eventId).single();
   const { count } = await client.from("reservations").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "reserved");
-  if (!event || new Date(event.starts_at) <= new Date() || (count ?? 0) >= event.capacity) return;
+  if (!event || new Date(event.starts_at) <= new Date()) return;
+  if ((count ?? 0) >= event.capacity) redirect("/home?error=full");
   await client.from("reservations").upsert({ user_id: user.id, event_id: eventId, status: "reserved" }, { onConflict: "user_id,event_id" });
   revalidatePath("/home");
 }

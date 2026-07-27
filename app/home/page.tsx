@@ -13,8 +13,9 @@ export const dynamic = "force-dynamic";
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric", weekday: "short" }).format(new Date(iso));
 const timeLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const user = await getSession(); if (!user) redirect("/login");
+  const { error } = await searchParams;
   const client = db();
   const [{ data: events }, { data: reservations }, { data: application }, { data: settings }] = await Promise.all([
     client.from("events").select("*,reservations(id,status)").gte("ends_at", new Date().toISOString()).order("starts_at"),
@@ -28,6 +29,7 @@ export default async function Home() {
     <header className="member-header"><Brand /><UserMenu name={user.name} /></header>
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>気になる練習を見つけて、コートで会いましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
+      {error === "full" && <div className="alert">申し訳ございません。定員がいっぱいになってしまっています。</div>}
       <div className="section-head"><div><p className="eyebrow green">UPCOMING</p><h2 id="events">これからのイベント</h2></div><span className="count">{events?.length ?? 0}件</span></div>
       <div className="event-list">{events?.map(event => {
         const booked = status.get(event.id) === "reserved";
