@@ -98,37 +98,43 @@
 }
 .profile-edit-form .full { grid-column: 1 / -1; }
 .site-footer {
-  display: flex;
   width: min(1120px, calc(100% - 48px));
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
   margin: 30px auto 0;
   padding: 24px 28px;
   border-top: 1px solid var(--line);
 }
-.site-footer > div { display: flex; align-items: center; gap: 13px; }
-.site-footer p { display: grid; gap: 3px; margin: 0; }
-.site-footer small { color: var(--muted); }
-.instagram-mark {
+.social-heading { display: grid; gap: 4px; margin-bottom: 16px; }
+.social-heading small { color: var(--muted); }
+.social-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.social-links > a,
+.social-link-disabled {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+}
+.social-links > a:hover { border-color: var(--green); transform: translateY(-1px); }
+.social-link-disabled { opacity: .58; }
+.social-links > a > span:last-child,
+.social-link-disabled > span:last-child { display: grid; gap: 2px; font-weight: 700; }
+.social-links small { color: var(--muted); font-weight: 400; }
+.social-mark {
   display: grid;
   width: 42px;
   height: 42px;
+  flex: 0 0 42px;
   place-items: center;
   border-radius: 12px;
-  color: white;
-  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+  color: var(--ink);
+  background: var(--lime);
+  font-size: 18px;
+  font-weight: 800;
 }
-.instagram-mark svg { width: 22px; }
-.site-footer > a {
-  padding: 11px 16px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: white;
-  font-size: 13px;
-  font-weight: 700;
-}
-.site-footer > a:hover { border-color: var(--green); color: var(--green); }
+.social-mark svg { width: 22px; }
+.social-x { background: var(--ink); color: var(--lime); }
 @media (max-width: 800px) {
   .profile-status { grid-template-columns: 1fr; }
   .profile-status .primary { width: 100%; }
@@ -136,10 +142,8 @@
   .profile-edit-form .full { grid-column: auto; }
   .site-footer {
     width: calc(100% - 28px);
-    align-items: stretch;
-    flex-direction: column;
     margin-bottom: 12px;
     padding: 22px 4px;
   }
-  .site-footer > a { text-align: center; }
+  .social-links { grid-template-columns: 1fr; }
 }
