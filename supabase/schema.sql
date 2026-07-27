@@ -13,6 +13,7 @@ create table users (
   grade smallint not null default 1 check (grade between 1 and 6),
   email text not null default '',
   line_id text,
+  tennis_experience text not null default '',
   role user_role not null default 'member',
   created_at timestamptz not null default now()
 );

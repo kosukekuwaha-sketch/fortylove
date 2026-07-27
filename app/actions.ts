@@ -48,7 +48,7 @@ export async function register(fd: FormData) {
   const { data, error } = await client.from("users").insert({
     name, password_hash: await bcrypt.hash(password, 12), university: text(fd, "university"),
     faculty: text(fd, "faculty"), grade: Number(text(fd, "grade")), email: text(fd, "email"),
-    line_id: text(fd, "line_id") || null, role: "member",
+    line_id: text(fd, "line_id") || null, tennis_experience: text(fd, "tennis_experience"), role: "member",
   }).select("id,name,role").single();
   if (error || !data) redirect("/register?error=server");
   await setSession(data);
