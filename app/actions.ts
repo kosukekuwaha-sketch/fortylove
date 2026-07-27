@@ -11,7 +11,15 @@ const text = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 export async function login(fd: FormData) {
   const name = text(fd, "name");
   const password = text(fd, "password");
-  const { data: users } = await db().from("users").select("id,name,password_hash,role").eq("name", name);
+  const { data: users, error } = await db().from("users").select("id,name,password_hash,role").eq("name", name);
+  if (error) {
+    console.error("Login database error", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+    });
+    redirect("/login?error=server");
+  }
   const user = users?.find((item) => bcrypt.compareSync(password, item.password_hash));
   if (!user) redirect("/login?error=1");
   await setSession({ id: user.id, name: user.name, role: user.role });

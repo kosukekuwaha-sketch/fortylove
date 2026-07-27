@@ -13,7 +13,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
     </section>
     <section className="auth-panel">
       <div className="auth-box"><div className="mobile-brand"><Brand /></div><p className="eyebrow green">MEMBER LOGIN</p><h2>おかえりなさい</h2><p className="muted">登録した名前とパスワードでログインしてください。</p>
-        {error && <div className="alert">名前またはパスワードが違います。</div>}
+        {error && <div className="alert">{error === "server" ? "データベースへ接続できませんでした。運営担当者に設定の確認を依頼してください。" : "名前またはパスワードが違います。"}</div>}
         <form action={login}>
           <label>名前<div className="input-wrap"><UserRound /><input name="name" autoComplete="username" placeholder="山田 太郎" required /></div></label>
           <label>パスワード<div className="input-wrap"><LockKeyhole /><input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required /></div></label>
