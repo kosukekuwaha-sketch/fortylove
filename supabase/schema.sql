@@ -2,7 +2,7 @@ create extension if not exists pgcrypto;
 create extension if not exists pg_trgm;
 create type user_role as enum ('super_admin', 'admin', 'member');
 create type reservation_status as enum ('reserved', 'cancelled', 'attended');
-create type application_status as enum ('pending', 'reviewing', 'rejected', 'approved');
+create type application_status as enum ('pending', 'reviewing', 'rejected', 'approved', 'withdrawn');
 
 create table users (
   id uuid primary key default gen_random_uuid(),

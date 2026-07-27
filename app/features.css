@@ -105,6 +105,23 @@
   text-align: left;
 }
 .profile-edit-form .full { grid-column: 1 / -1; }
+.withdraw-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 12px 0 22px;
+  padding: 18px;
+  border: 1px solid #e5cbc8;
+  border-radius: 12px;
+  text-align: left;
+}
+.withdraw-panel p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+.withdraw-panel .danger,
+.table-withdraw { width: auto; white-space: nowrap; }
+.table-withdraw { padding: 8px 11px; }
+.admin-nav nav { margin-top: 32px; gap: 3px; }
+.admin-nav nav a { padding: 10px 12px; }
 .site-footer {
   margin-top: 56px;
   padding: 50px max(24px, calc((100vw - 1120px) / 2)) 24px;
@@ -171,6 +188,8 @@
   .profile-status .primary { width: 100%; }
   .profile-edit-form { grid-template-columns: 1fr; }
   .profile-edit-form .full { grid-column: auto; }
+  .withdraw-panel { align-items: stretch; flex-direction: column; }
+  .withdraw-panel .danger { width: 100%; }
   .site-footer {
     padding: 38px 20px 94px;
   }

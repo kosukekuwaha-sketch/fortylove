@@ -88,6 +88,27 @@ export async function applyMembership() {
   revalidatePath("/home");
 }
 
+export async function withdrawMembership() {
+  const user = await getSession();
+  if (!user) redirect("/login");
+  const client = db();
+  const { data, error } = await client
+    .from("membership_applications")
+    .update({ status: "withdrawn" })
+    .eq("user_id", user.id)
+    .eq("status", "approved")
+    .select("id")
+    .maybeSingle();
+  if (error || !data) redirect("/profile?error=withdraw");
+  await client.from("audit_logs").insert({
+    actor_id: user.id,
+    action: "membership.withdraw.self",
+    target_type: "application",
+    target_id: data.id,
+  });
+  redirect("/home");
+}
+
 export async function updateProfile(fd: FormData) {
   const user = await getSession();
   if (!user) redirect("/login");
@@ -176,6 +197,21 @@ export async function updateApplication(fd: FormData) {
   const id = text(fd, "id");
   await db().from("membership_applications").update({ status: text(fd, "status") }).eq("id", id);
   await db().from("audit_logs").insert({ actor_id: user.id, action: "application.update", target_type: "application", target_id: id });
+  revalidatePath("/admin/applications");
+}
+
+export async function withdrawMember(fd: FormData) {
+  const user = await requireAdmin();
+  const id = text(fd, "id");
+  const client = db();
+  await client.from("membership_applications").update({ status: "withdrawn" }).eq("id", id).eq("status", "approved");
+  await client.from("audit_logs").insert({
+    actor_id: user.id,
+    action: "membership.withdraw.admin",
+    target_type: "application",
+    target_id: id,
+  });
+  revalidatePath("/admin/members");
   revalidatePath("/admin/applications");
 }
 

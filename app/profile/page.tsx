@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { logout, updateProfile } from "@/app/actions";
+import { logout, updateProfile, withdrawMembership } from "@/app/actions";
 import { Brand } from "@/components/brand";
 import { MemberNav } from "@/components/member-nav";
 import { UserMenu } from "@/components/user-menu";
 import { UniversityFields } from "@/components/university-fields";
 import { AvatarInput } from "@/components/avatar-input";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,11 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
   const session = await getSession();
   if (!session) redirect("/login");
   const { saved, error } = await searchParams;
-  const { data: user } = await db().from("users").select("*").eq("id", session.id).single();
+  const client = db();
+  const [{ data: user }, { data: application }] = await Promise.all([
+    client.from("users").select("*").eq("id", session.id).single(),
+    client.from("membership_applications").select("status").eq("user_id", session.id).maybeSingle(),
+  ]);
   return <main className="member-shell">
     <header className="member-header"><Brand /><UserMenu name={session.name} avatarUrl={user?.avatar_url} /></header>
     <section className="profile-card">
@@ -22,7 +27,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
       <h1>{session.name}</h1>
       <p>{user?.university}・{user?.faculty}・{user?.department}・{Number(user?.grade) >= 5 ? "4年以上" : `${user?.grade}年`}</p>
       {saved && <div className="success-message">プロフィールを更新しました。</div>}
-      {error && <div className="alert">{error === "avatar-size" ? "画像は2MB以下にしてください。" : error === "avatar-type" ? "JPEG・PNG・WebP・GIF画像を選択してください。" : error === "avatar-upload" ? "画像をアップロードできませんでした。" : error === "avatar-column" ? "Supabaseに画像保存用の設定がありません。管理者に確認してください。" : "更新できませんでした。もう一度お試しください。"}</div>}
+      {error && <div className="alert">{error === "avatar-size" ? "画像は2MB以下にしてください。" : error === "avatar-type" ? "JPEG・PNG・WebP・GIF画像を選択してください。" : error === "avatar-upload" ? "画像をアップロードできませんでした。" : error === "avatar-column" ? "Supabaseに画像保存用の設定がありません。管理者に確認してください。" : error === "withdraw" ? "退会処理ができませんでした。" : "更新できませんでした。もう一度お試しください。"}</div>}
       <form action={updateProfile} className="profile-edit-form">
         <AvatarInput />
         <label className="full">名前<input name="name" defaultValue={user?.name} required /></label>
@@ -44,6 +49,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
         </label>
         <button className="primary full">プロフィールを保存</button>
       </form>
+      {application?.status === "approved" && <section className="withdraw-panel"><div><strong>退会手続き</strong><p>退会後もアカウントと過去の予約履歴は残ります。</p></div><form action={withdrawMembership}><ConfirmSubmitButton className="danger" message="Fortyloveを退会しますか？">退会する</ConfirmSubmitButton></form></section>}
       <form action={logout}><button className="secondary">ログアウト</button></form>
     </section>
     <MemberNav active="profile" />
