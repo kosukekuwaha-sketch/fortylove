@@ -11,20 +11,14 @@ const faculties: Record<string, string[]> = {
 
 export function UniversityFields() {
   const [university, setUniversity] = useState("");
-  const [customUniversity, setCustomUniversity] = useState("");
   const [faculty, setFaculty] = useState("");
-  const [customFaculty, setCustomFaculty] = useState("");
-  const universityValue = university === "その他" ? customUniversity : university;
-  const facultyValue = faculty === "その他" ? customFaculty : faculty;
 
   useEffect(() => {
     const saved = sessionStorage.getItem(REGISTRATION_DRAFT_KEY);
     if (!saved) return;
     const values = JSON.parse(saved) as Record<string, string>;
     setUniversity(values.university_choice ?? "");
-    setCustomUniversity(values.custom_university ?? "");
     setFaculty(values.faculty_choice ?? "");
-    setCustomFaculty(values.custom_faculty ?? "");
   }, []);
 
   return <>
@@ -32,27 +26,18 @@ export function UniversityFields() {
       <select name="university_choice" value={university} onChange={(event) => {
         setUniversity(event.target.value);
         setFaculty("");
-        setCustomFaculty("");
       }} required>
         <option value="">選択してください</option>
         {Object.keys(faculties).map((name) => <option key={name}>{name}</option>)}
-        <option>その他</option>
       </select>
     </label>
-    {university === "その他" && <label>大学名
-      <input name="custom_university" value={customUniversity} onChange={(event) => setCustomUniversity(event.target.value)} placeholder="大学名を入力" required />
-    </label>}
-    <input type="hidden" name="university" value={universityValue} />
+    <input type="hidden" name="university" value={university} />
     {university && <label>学部
       <select name="faculty_choice" value={faculty} onChange={(event) => setFaculty(event.target.value)} required>
         <option value="">選択してください</option>
         {(faculties[university] ?? []).map((name) => <option key={name}>{name}</option>)}
-        <option>その他</option>
       </select>
     </label>}
-    {faculty === "その他" && <label>学部名
-      <input name="custom_faculty" value={customFaculty} onChange={(event) => setCustomFaculty(event.target.value)} placeholder="学部名を入力" required />
-    </label>}
-    <input type="hidden" name="faculty" value={facultyValue} />
+    <input type="hidden" name="faculty" value={faculty} />
   </>;
 }
