@@ -6,6 +6,8 @@ import { applyMembership, cancelReservation, reserve } from "@/app/actions";
 import { Brand } from "@/components/brand";
 import { MemberNav } from "@/components/member-nav";
 import { ClearRegistrationDraft } from "@/components/registration-draft";
+import { UserMenu } from "@/components/user-menu";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 
 export const dynamic = "force-dynamic";
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric", weekday: "short" }).format(new Date(iso));
@@ -23,7 +25,7 @@ export default async function Home() {
   const status = new Map(reservations?.map(r => [r.event_id, r.status]));
   return <main className="member-shell">
     <ClearRegistrationDraft />
-    <header className="member-header"><Brand /><div className="avatar">{user.name.slice(0, 1)}</div></header>
+    <header className="member-header"><Brand /><UserMenu name={user.name} /></header>
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>気になる練習を見つけて、コートで会いましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
       <div className="section-head"><div><p className="eyebrow green">UPCOMING</p><h2 id="events">これからのイベント</h2></div><span className="count">{events?.length ?? 0}件</span></div>
@@ -33,10 +35,10 @@ export default async function Home() {
         return <article className="event-card" key={event.id}>
           <div className="event-date"><strong>{dateLabel(event.starts_at).split("日")[0]}日</strong><span>{dateLabel(event.starts_at).split("日")[1]}</span></div>
           <div className="event-main"><h3>{event.title}</h3><div className="event-meta"><span><Clock3 />{timeLabel(event.starts_at)}–{timeLabel(event.ends_at)}</span><span><MapPin />{event.location}</span><span><UsersRound />{count}/{event.capacity}名</span></div><p>{event.description}</p></div>
-          <form action={booked ? cancelReservation : reserve}><input type="hidden" name="event_id" value={event.id}/><button className={booked ? "booked" : "reserve"}>{booked ? "予約済み" : count >= event.capacity ? "満員" : "予約する"}</button></form>
+          <form action={booked ? cancelReservation : reserve}><input type="hidden" name="event_id" value={event.id}/><ConfirmSubmitButton className={booked ? "booked" : "reserve"} disabled={!booked && count >= event.capacity} message={booked ? `「${event.title}」の予約をキャンセルしますか？` : `「${event.title}」に参加予約しますか？`}>{booked ? "予約済み" : count >= event.capacity ? "満員" : "予約する"}</ConfirmSubmitButton></form>
         </article>;
       })}</div>
-      <section className="join-card"><div className="join-icon"><Sparkles /></div><div><p className="eyebrow">READY TO JOIN?</p><h2>{application ? application.status === "approved" ? "入会が承認されました！" : "入会申請を受け付けています" : "この春、一緒にテニスしませんか？"}</h2><p>{application ? "運営からの連絡をお待ちください。" : "いつでも入会を申請できます。まずは気軽に送ってみてください。"}</p></div>{!application && settings?.recruiting_open !== false && <form action={applyMembership}><button className="dark">入会を申請する</button></form>}</section>
+      <section className="join-card"><div className="join-icon"><Sparkles /></div><div><p className="eyebrow">READY TO JOIN?</p><h2>{application ? application.status === "approved" ? "入会が承認されました！" : "入会申請を受け付けています" : "この春、一緒にテニスしませんか？"}</h2><p>{application ? "運営からの連絡をお待ちください。" : "いつでも入会を申請できます。まずは気軽に送ってみてください。"}</p></div>{!application && settings?.recruiting_open !== false && <form action={applyMembership}><ConfirmSubmitButton className="dark" message="Fortyloveへ入会申請しますか？">入会を申請する</ConfirmSubmitButton></form>}</section>
     </section>
     <MemberNav active="home" />
   </main>;

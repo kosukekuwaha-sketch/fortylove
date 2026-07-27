@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { logout, updateRacketStatus } from "@/app/actions";
 import { Brand } from "@/components/brand";
 import { MemberNav } from "@/components/member-nav";
+import { UserMenu } from "@/components/user-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
   const { saved, error } = await searchParams;
   const { data: user } = await db().from("users").select("*").eq("id", session.id).single();
   return <main className="member-shell">
-    <header className="member-header"><Brand /></header>
+    <header className="member-header"><Brand /><UserMenu name={session.name} /></header>
     <section className="profile-card">
       <div className="profile-avatar">{session.name[0]}</div>
       <h1>{session.name}</h1>
