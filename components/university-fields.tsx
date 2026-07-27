@@ -34,24 +34,43 @@ const faculties: Record<string, string[]> = {
 
 export function UniversityFields() {
   const [university, setUniversity] = useState("");
+  const [customUniversity, setCustomUniversity] = useState("");
+  const [faculty, setFaculty] = useState("");
+  const [customFaculty, setCustomFaculty] = useState("");
+  const universityValue = university === "その他" ? customUniversity : university;
+  const facultyValue = faculty === "その他" ? customFaculty : faculty;
 
   return <>
     <label>大学
       <select
-        name="university"
         value={university}
-        onChange={(event) => setUniversity(event.target.value)}
+        onChange={(event) => {
+          setUniversity(event.target.value);
+          setFaculty("");
+          setCustomFaculty("");
+        }}
         required
       >
         <option value="">選択してください</option>
         {Object.keys(faculties).map((name) => <option key={name}>{name}</option>)}
+        <option>その他</option>
       </select>
     </label>
-    <label>学部
-      <select name="faculty" key={university} disabled={!university} required>
-        <option value="">{university ? "選択してください" : "先に大学を選択してください"}</option>
-        {(faculties[university] ?? []).map((faculty) => <option key={faculty}>{faculty}</option>)}
+    {university === "その他" && <label>大学名
+      <input value={customUniversity} onChange={(event) => setCustomUniversity(event.target.value)} placeholder="大学名を入力" required />
+    </label>}
+    <input type="hidden" name="university" value={universityValue} />
+
+    {university && <label>学部
+      <select value={faculty} onChange={(event) => setFaculty(event.target.value)} required>
+        <option value="">選択してください</option>
+        {(faculties[university] ?? []).map((name) => <option key={name}>{name}</option>)}
+        <option>その他</option>
       </select>
-    </label>
+    </label>}
+    {faculty === "その他" && <label>学部名
+      <input value={customFaculty} onChange={(event) => setCustomFaculty(event.target.value)} placeholder="学部名を入力" required />
+    </label>}
+    <input type="hidden" name="faculty" value={facultyValue} />
   </>;
 }
