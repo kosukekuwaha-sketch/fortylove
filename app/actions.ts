@@ -230,6 +230,26 @@ export async function updateUserRole(fd: FormData) {
   revalidatePath("/admin/admins");
 }
 
+export async function resetUserPassword(fd: FormData) {
+  const user = await requireAdmin();
+  if (user.role !== "super_admin") redirect("/admin");
+  const userId = text(fd, "user_id");
+  const temporaryPassword = text(fd, "temporary_password");
+  if (!userId || temporaryPassword.length < 4) redirect("/admin?error=password");
+  const client = db();
+  const { error } = await client.from("users").update({
+    password_hash: await bcrypt.hash(temporaryPassword, 12),
+  }).eq("id", userId);
+  if (error) redirect("/admin?error=password-update");
+  await client.from("audit_logs").insert({
+    actor_id: user.id,
+    action: "user.password.reset",
+    target_type: "user",
+    target_id: userId,
+  });
+  redirect("/admin?password_reset=1");
+}
+
 export async function createEvent(fd: FormData) {
   const user = await requireAdmin();
   const client = db();

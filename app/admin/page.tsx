@@ -1,12 +1,21 @@
 import { Search, UserPlus } from "lucide-react";
 import { db } from "@/lib/db";
+import { getSession } from "@/lib/auth";
+import { resetUserPassword } from "@/app/actions";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 export const dynamic = "force-dynamic";
-export default async function Members({ searchParams }: { searchParams: Promise<{ q?: string; university?: string; page?: string }> }) {
-  const { q = "", university = "", page = "1" } = await searchParams; const size = 20; const from = (Number(page) - 1) * size;
+export default async function Members({ searchParams }: { searchParams: Promise<{ q?: string; university?: string; page?: string; error?: string; password_reset?: string }> }) {
+  const { q = "", university = "", page = "1", error, password_reset } = await searchParams; const size = 20; const from = (Number(page) - 1) * size;
+  const session = await getSession();
+  const isSuperAdmin = session?.role === "super_admin";
   let query = db().from("users").select("*", { count: "exact" }).eq("role", "member").range(from, from + size - 1).order("created_at", { ascending: false });
   if (q) query = query.ilike("name", `%${q}%`); if (university) query = query.eq("university", university);
   const { data, count } = await query;
+  const { data: passwordUsers } = isSuperAdmin ? await db().from("users").select("id,name,university,role").order("name") : { data: null };
   return <section className="admin-page"><div className="page-title"><div><p className="eyebrow green">MEMBERS</p><h1>新入生名簿</h1><p>登録者の情報を検索・確認できます。</p></div><span className="stat"><strong>{count ?? 0}</strong>名 登録中</span></div>
+    {password_reset && <div className="success-message">仮パスワードへ再設定しました。</div>}
+    {error && <div className="alert">{error === "password" ? "仮パスワードは4文字以上で入力してください。" : "パスワードを更新できませんでした。"}</div>}
+    {isSuperAdmin && <details className="create-panel"><summary>＋ パスワードを再設定</summary><form action={resetUserPassword} className="role-form"><label>対象ユーザー<select name="user_id" required><option value="">選択してください</option>{passwordUsers?.map(user => <option key={user.id} value={user.id}>{user.name}（{user.role === "super_admin" ? "最高情報責任者" : user.role === "admin" ? "管理者" : user.university}）</option>)}</select></label><label>新しい仮パスワード<input name="temporary_password" type="password" minLength={4} autoComplete="new-password" required /></label><ConfirmSubmitButton className="primary" message="選択したユーザーのパスワードを再設定しますか？">再設定する</ConfirmSubmitButton></form></details>}
     <form className="filters"><div className="search"><Search /><input name="q" defaultValue={q} placeholder="名前で検索" /></div><select name="university" defaultValue={university}><option value="">すべての大学</option><option>早稲田大学</option><option>日本女子大学</option><option>東京女子大学</option></select><button className="dark">絞り込む</button></form>
     <div className="table-wrap"><table><thead><tr><th>氏名</th><th>大学</th><th>学部・学科</th><th>学年</th><th>テニス経験</th><th>ラケット</th><th>連絡先</th><th>登録日</th></tr></thead><tbody>{data?.map(m => <tr key={m.id}><td><span className="table-name"><i>{m.name[0]}</i>{m.name}</span></td><td>{m.university}</td><td>{m.faculty}<small>{m.department}</small></td><td>{Number(m.grade) >= 5 ? "4年以上" : `${m.grade}年`}</td><td>{m.tennis_experience || "未記入"}</td><td><span className={m.has_racket ? "status-owned" : "status-needed"}>{m.has_racket ? "所持" : "未所持"}</span></td><td>{m.email || "未登録"}<small>{m.line_id && `LINE: ${m.line_id}`}</small></td><td>{new Date(m.created_at).toLocaleDateString("ja-JP")}</td></tr>)}</tbody></table>{!data?.length && <div className="empty"><UserPlus /><p>該当するメンバーはいません</p></div>}</div>
   </section>;
