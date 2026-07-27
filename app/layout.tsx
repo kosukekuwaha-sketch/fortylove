@@ -3,8 +3,8 @@ import "./globals.css";
 import "./features.css";
 
 export const metadata: Metadata = {
-  title: "早大フォーティーラブ",
-  description: "早大フォーティーラブの新歓・練習予約管理アプリ",
+  title: "早大Fortylove",
+  description: "早大Fortyloveの新歓・練習予約管理アプリ",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
