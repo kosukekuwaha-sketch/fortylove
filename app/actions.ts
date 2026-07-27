@@ -47,7 +47,7 @@ export async function register(fd: FormData) {
   if (sameNames?.some((u) => bcrypt.compareSync(password, u.password_hash))) redirect("/register?error=duplicate");
   const { data, error } = await client.from("users").insert({
     name, password_hash: await bcrypt.hash(password, 12), university: text(fd, "university"),
-    faculty: text(fd, "faculty"), grade: Number(text(fd, "grade")), email: text(fd, "email"),
+    faculty: text(fd, "faculty"), department: text(fd, "department"), grade: Number(text(fd, "grade")), email: text(fd, "email"),
     line_id: text(fd, "line_id") || null, tennis_experience: text(fd, "tennis_experience"), role: "member",
   }).select("id,name,role").single();
   if (error || !data) redirect("/register?error=server");

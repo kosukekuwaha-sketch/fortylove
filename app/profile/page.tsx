@@ -17,7 +17,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
     <section className="profile-card">
       <div className="profile-avatar">{session.name[0]}</div>
       <h1>{session.name}</h1>
-      <p>{user?.university}・{user?.faculty}・{user?.grade}年</p>
+      <p>{user?.university}・{user?.faculty}・{user?.department}・{user?.grade}年</p>
       {saved && <div className="success-message">ラケット情報を更新しました。</div>}
       {error && <div className="alert">更新できませんでした。もう一度お試しください。</div>}
       <dl>

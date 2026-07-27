@@ -10,6 +10,7 @@ create table users (
   password_hash text not null,
   university text not null default '',
   faculty text not null default '',
+  department text not null default '',
   grade smallint not null default 1 check (grade between 1 and 6),
   email text not null default '',
   line_id text,
