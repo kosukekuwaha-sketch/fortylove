@@ -13,7 +13,7 @@ export default async function Register({ searchParams }: { searchParams: Promise
         <RegistrationDraftKeeper />
         <label className="full">名前<input name="name" placeholder="山田 太郎" required /></label>
         <UniversityFields />
-        <label>学年<select name="grade" required>{[1,2,3,4].map(x => <option key={x} value={x}>{x}年</option>)}</select></label>
+        <label>学年<select name="grade" required><option value="1">1年</option><option value="2">2年</option><option value="3">3年</option><option value="4">4年</option><option value="5">4年以上</option></select></label>
         <label>メールアドレス（任意）<input name="email" type="email" placeholder="you@example.com" /></label>
         <label>LINE ID（任意）<input name="line_id" placeholder="line_id" /></label>
         <label className="full">テニス経験<textarea name="tennis_experience" placeholder="例：中学で軟式テニスを3年間、大学から硬式を始めたい など" /></label>

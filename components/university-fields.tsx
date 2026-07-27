@@ -33,19 +33,30 @@ const schools: Record<string, Record<string, string[]>> = {
   },
 };
 
-export function UniversityFields() {
-  const [university, setUniversity] = useState("");
-  const [faculty, setFaculty] = useState("");
-  const [department, setDepartment] = useState("");
+export function UniversityFields({
+  initialUniversity = "",
+  initialFaculty = "",
+  initialDepartment = "",
+  restoreDraft = true,
+}: {
+  initialUniversity?: string;
+  initialFaculty?: string;
+  initialDepartment?: string;
+  restoreDraft?: boolean;
+}) {
+  const [university, setUniversity] = useState(initialUniversity);
+  const [faculty, setFaculty] = useState(initialFaculty);
+  const [department, setDepartment] = useState(initialDepartment);
 
   useEffect(() => {
+    if (!restoreDraft) return;
     const saved = sessionStorage.getItem(REGISTRATION_DRAFT_KEY);
     if (!saved) return;
     const values = JSON.parse(saved) as Record<string, string>;
     setUniversity(values.university_choice ?? "");
     setFaculty(values.faculty_choice ?? "");
     setDepartment(values.department_choice ?? "");
-  }, []);
+  }, [restoreDraft]);
 
   return <>
     <label>大学

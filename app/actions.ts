@@ -88,13 +88,23 @@ export async function applyMembership() {
   revalidatePath("/home");
 }
 
-export async function updateRacketStatus(fd: FormData) {
+export async function updateProfile(fd: FormData) {
   const user = await getSession();
   if (!user) redirect("/login");
+  const name = text(fd, "name");
   const { error } = await db().from("users").update({
+    name,
+    university: text(fd, "university"),
+    faculty: text(fd, "faculty"),
+    department: text(fd, "department"),
+    grade: Number(text(fd, "grade")),
+    email: text(fd, "email"),
+    line_id: text(fd, "line_id") || null,
+    tennis_experience: text(fd, "tennis_experience"),
     has_racket: text(fd, "has_racket") === "true",
   }).eq("id", user.id);
   if (error) redirect("/profile?error=update");
+  await setSession({ ...user, name });
   redirect("/profile?saved=1");
 }
 
