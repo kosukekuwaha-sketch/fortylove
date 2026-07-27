@@ -120,6 +120,10 @@
 .withdraw-panel .danger,
 .table-withdraw { width: auto; white-space: nowrap; }
 .table-withdraw { padding: 8px 11px; }
+.admin-event-stats { display: flex; gap: 22px; }
+.admin-event-stats > span { display: grid; text-align: center; }
+.admin-event-stats strong { font-size: 24px; }
+.admin-event-stats small { color: var(--muted); }
 .admin-nav nav { margin-top: 32px; gap: 3px; }
 .admin-nav nav a { padding: 10px 12px; }
 .site-footer {

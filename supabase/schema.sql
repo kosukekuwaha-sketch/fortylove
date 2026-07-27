@@ -31,6 +31,7 @@ create table events (
   location text not null,
   capacity integer not null check (capacity > 0),
   description text,
+  event_type text not null default 'tennis' check (event_type in ('tennis', 'event')),
   created_at timestamptz not null default now(),
   check (ends_at > starts_at)
 );

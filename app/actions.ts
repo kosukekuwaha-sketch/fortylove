@@ -187,6 +187,7 @@ export async function createEvent(fd: FormData) {
   const { data } = await client.from("events").insert({
     title: text(fd, "title"), starts_at: text(fd, "starts_at"), ends_at: text(fd, "ends_at"),
     location: text(fd, "location"), capacity: Number(text(fd, "capacity")), description: text(fd, "description"),
+    event_type: text(fd, "event_type") || "tennis",
   }).select("id").single();
   await client.from("audit_logs").insert({ actor_id: user.id, action: "event.create", target_type: "event", target_id: data?.id });
   revalidatePath("/admin/events");
