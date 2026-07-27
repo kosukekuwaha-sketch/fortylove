@@ -40,7 +40,7 @@ export async function login(fd: FormData) {
 
 export async function register(fd: FormData) {
   const password = text(fd, "password");
-  if (password.length < 4 || !/[A-Za-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) redirect("/register?error=password");
+  if (password.length < 4) redirect("/register?error=password");
   const name = text(fd, "name");
   const client = db();
   const { data: sameNames } = await client.from("users").select("password_hash").eq("name", name);
