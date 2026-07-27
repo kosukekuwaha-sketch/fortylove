@@ -58,6 +58,11 @@ export function UniversityFields({
     setDepartment(values.department_choice ?? "");
   }, [restoreDraft]);
 
+  const departments = university && faculty ? schools[university][faculty] : [];
+  const hasDepartmentChoice = departments.length > 0 && !(
+    departments.length === 1 && departments[0].startsWith("学科なし")
+  );
+
   return <>
     <label>大学
       <select name="university_choice" value={university} onChange={(event) => {
@@ -71,7 +76,14 @@ export function UniversityFields({
 
     {university && <label>学部
       <select name="faculty_choice" value={faculty} onChange={(event) => {
-        setFaculty(event.target.value); setDepartment("");
+        const nextFaculty = event.target.value;
+        const nextDepartments = schools[university][nextFaculty] ?? [];
+        setFaculty(nextFaculty);
+        setDepartment(
+          nextDepartments.length === 1 && nextDepartments[0].startsWith("学科なし")
+            ? nextDepartments[0]
+            : "",
+        );
       }} required>
         <option value="">選択してください</option>
         {Object.keys(schools[university]).map((name) => <option key={name}>{name}</option>)}
@@ -79,10 +91,10 @@ export function UniversityFields({
     </label>}
     <input type="hidden" name="faculty" value={faculty} />
 
-    {faculty && <label>学科・学系
+    {faculty && hasDepartmentChoice && <label>学科・学系
       <select name="department_choice" value={department} onChange={(event) => setDepartment(event.target.value)} required>
         <option value="">選択してください</option>
-        {schools[university][faculty].map((name) => <option key={name}>{name}</option>)}
+        {departments.map((name) => <option key={name}>{name}</option>)}
       </select>
     </label>}
     <input type="hidden" name="department" value={department} />

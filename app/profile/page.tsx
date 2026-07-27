@@ -6,6 +6,7 @@ import { Brand } from "@/components/brand";
 import { MemberNav } from "@/components/member-nav";
 import { UserMenu } from "@/components/user-menu";
 import { UniversityFields } from "@/components/university-fields";
+import { AvatarInput } from "@/components/avatar-input";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +16,15 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
   const { saved, error } = await searchParams;
   const { data: user } = await db().from("users").select("*").eq("id", session.id).single();
   return <main className="member-shell">
-    <header className="member-header"><Brand /><UserMenu name={session.name} /></header>
+    <header className="member-header"><Brand /><UserMenu name={session.name} avatarUrl={user?.avatar_url} /></header>
     <section className="profile-card">
-      <div className="profile-avatar">{session.name[0]}</div>
+      <div className="profile-avatar">{user?.avatar_url ? <img src={user.avatar_url} alt="" /> : session.name[0]}</div>
       <h1>{session.name}</h1>
       <p>{user?.university}・{user?.faculty}・{user?.department}・{Number(user?.grade) >= 5 ? "4年以上" : `${user?.grade}年`}</p>
       {saved && <div className="success-message">プロフィールを更新しました。</div>}
-      {error && <div className="alert">更新できませんでした。もう一度お試しください。</div>}
+      {error && <div className="alert">{error === "avatar-size" ? "画像は2MB以下にしてください。" : error === "avatar-type" ? "JPEG・PNG・WebP・GIF画像を選択してください。" : error === "avatar-upload" ? "画像をアップロードできませんでした。" : "更新できませんでした。もう一度お試しください。"}</div>}
       <form action={updateProfile} className="profile-edit-form">
+        <AvatarInput />
         <label className="full">名前<input name="name" defaultValue={user?.name} required /></label>
         <UniversityFields initialUniversity={user?.university} initialFaculty={user?.faculty} initialDepartment={user?.department} restoreDraft={false} />
         <label>学年

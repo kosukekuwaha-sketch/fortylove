@@ -17,16 +17,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
   const user = await getSession(); if (!user) redirect("/login");
   const { error } = await searchParams;
   const client = db();
-  const [{ data: events }, { data: reservations }, { data: application }, { data: settings }] = await Promise.all([
+  const [{ data: events }, { data: reservations }, { data: application }, { data: settings }, { data: profile }] = await Promise.all([
     client.from("events").select("*,reservations(id,status)").gte("ends_at", new Date().toISOString()).order("starts_at"),
     client.from("reservations").select("event_id,status").eq("user_id", user.id),
     client.from("membership_applications").select("status").eq("user_id", user.id).maybeSingle(),
     client.from("app_settings").select("recruiting_open").eq("id", 1).maybeSingle(),
+    client.from("users").select("avatar_url").eq("id", user.id).maybeSingle(),
   ]);
   const status = new Map(reservations?.map(r => [r.event_id, r.status]));
   return <main className="member-shell">
     <ClearRegistrationDraft />
-    <header className="member-header"><Brand /><UserMenu name={user.name} /></header>
+    <header className="member-header"><Brand /><UserMenu name={user.name} avatarUrl={profile?.avatar_url} /></header>
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>気になる練習を見つけて、コートで会いましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
       {error === "full" && <div className="alert">申し訳ございません。定員がいっぱいになってしまっています。</div>}

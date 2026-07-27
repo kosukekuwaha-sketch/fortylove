@@ -92,7 +92,41 @@ export async function updateProfile(fd: FormData) {
   const user = await getSession();
   if (!user) redirect("/login");
   const name = text(fd, "name");
-  const { error } = await db().from("users").update({
+  const client = db();
+  const avatar = fd.get("avatar");
+  let avatarUrl: string | undefined;
+
+  if (avatar instanceof File && avatar.size > 0) {
+    const extensions: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+    };
+    const extension = extensions[avatar.type];
+    if (!extension) redirect("/profile?error=avatar-type");
+    if (avatar.size > 2 * 1024 * 1024) redirect("/profile?error=avatar-size");
+
+    const { data: bucket } = await client.storage.getBucket("avatars");
+    if (!bucket) {
+      const { error: bucketError } = await client.storage.createBucket("avatars", {
+        public: true,
+        fileSizeLimit: 2 * 1024 * 1024,
+        allowedMimeTypes: Object.keys(extensions),
+      });
+      if (bucketError) redirect("/profile?error=avatar-upload");
+    }
+
+    const path = `${user.id}/avatar-${Date.now()}.${extension}`;
+    const { error: uploadError } = await client.storage.from("avatars").upload(path, avatar, {
+      contentType: avatar.type,
+      upsert: false,
+    });
+    if (uploadError) redirect("/profile?error=avatar-upload");
+    avatarUrl = client.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+  }
+
+  const updates = {
     name,
     university: text(fd, "university"),
     faculty: text(fd, "faculty"),
@@ -102,7 +136,9 @@ export async function updateProfile(fd: FormData) {
     line_id: text(fd, "line_id") || null,
     tennis_experience: text(fd, "tennis_experience"),
     has_racket: text(fd, "has_racket") === "true",
-  }).eq("id", user.id);
+    ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+  };
+  const { error } = await client.from("users").update(updates).eq("id", user.id);
   if (error) redirect("/profile?error=update");
   await setSession({ ...user, name });
   redirect("/profile?saved=1");

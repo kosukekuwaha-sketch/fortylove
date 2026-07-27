@@ -32,6 +32,13 @@
   user-select: none;
 }
 .avatar::-webkit-details-marker { display: none; }
+.avatar img,
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
 .user-menu { position: relative; }
 .user-menu-panel {
   position: absolute;

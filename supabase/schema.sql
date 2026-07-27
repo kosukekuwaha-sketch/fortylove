@@ -16,6 +16,7 @@ create table users (
   line_id text,
   tennis_experience text not null default '',
   has_racket boolean not null default false,
+  avatar_url text,
   role user_role not null default 'member',
   created_at timestamptz not null default now()
 );
