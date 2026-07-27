@@ -24,7 +24,7 @@ export function SiteFooter() {
           <div className="social-links">
             <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Instagramを見る">
               <span className="social-mark"><Instagram /></span>
-              <span>Instagram<small>@waseda_fortylove_shinkan</small></span>
+              <span>Instagram</span>
             </a>
             {X_URL ? (
               <a href={X_URL} target="_blank" rel="noopener noreferrer">
