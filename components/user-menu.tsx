@@ -5,7 +5,7 @@ import { logout } from "@/app/actions";
 export function UserMenu({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
   return (
     <details className="user-menu">
-      <summary className="avatar" aria-label="アカウントメニューを開く">
+      <summary className={`avatar${avatarUrl ? " has-image" : ""}`} aria-label="アカウントメニューを開く">
         {avatarUrl ? <img src={avatarUrl} alt="" /> : name.slice(0, 1)}
       </summary>
       <div className="user-menu-panel">

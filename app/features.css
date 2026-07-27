@@ -43,6 +43,8 @@
   transform: scale(1.03);
 }
 .profile-avatar { overflow: hidden; }
+.avatar.has-image,
+.profile-avatar.has-image { background: transparent; }
 .user-menu { position: relative; }
 .user-menu-panel {
   position: absolute;
