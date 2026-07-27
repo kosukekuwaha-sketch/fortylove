@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { applyMembership, cancelReservation, reserve } from "@/app/actions";
 import { Brand } from "@/components/brand";
 import { MemberNav } from "@/components/member-nav";
+import { ClearRegistrationDraft } from "@/components/registration-draft";
 
 export const dynamic = "force-dynamic";
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric", weekday: "short" }).format(new Date(iso));
@@ -21,6 +22,7 @@ export default async function Home() {
   ]);
   const status = new Map(reservations?.map(r => [r.event_id, r.status]));
   return <main className="member-shell">
+    <ClearRegistrationDraft />
     <header className="member-header"><Brand /><div className="avatar">{user.name.slice(0, 1)}</div></header>
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>気になる練習を見つけて、コートで会いましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">

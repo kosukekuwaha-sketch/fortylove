@@ -1,0 +1,32 @@
+.profile-status {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: end;
+  padding: 22px 0;
+  margin-bottom: 18px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+}
+.profile-status .primary { width: auto; }
+.success-message {
+  padding: 12px 14px;
+  margin: 18px 0;
+  background: #eaf4ef;
+  color: var(--green);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.status-owned, .status-needed {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.status-owned { background: #eaf4ef; color: var(--green); }
+.status-needed { background: #fff2de; color: #97651b; }
+@media (max-width: 800px) {
+  .profile-status { grid-template-columns: 1fr; }
+  .profile-status .primary { width: 100%; }
+}

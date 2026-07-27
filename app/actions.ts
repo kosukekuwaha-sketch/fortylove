@@ -87,6 +87,16 @@ export async function applyMembership() {
   revalidatePath("/home");
 }
 
+export async function updateRacketStatus(fd: FormData) {
+  const user = await getSession();
+  if (!user) redirect("/login");
+  const { error } = await db().from("users").update({
+    has_racket: text(fd, "has_racket") === "true",
+  }).eq("id", user.id);
+  if (error) redirect("/profile?error=update");
+  redirect("/profile?saved=1");
+}
+
 async function requireAdmin() {
   const user = await getSession();
   if (!user || user.role === "member") redirect("/login");
