@@ -42,7 +42,7 @@ export function SiteFooter() {
       </div>
       <div className="footer-bottom">
         <span>早大Fortylove</span>
-        <small>© {new Date().getFullYear()} Fortylove. All rights reserved.</small>
+        <small>© {new Date().getFullYear()} Kosuke Kuwahara. All rights reserved.</small>
       </div>
     </footer>
   );
