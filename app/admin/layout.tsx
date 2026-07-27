@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { AdminNav } from "@/components/admin-nav";
+import { db } from "@/lib/db";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const user = await getSession(); if (!user || user.role === "member") redirect("/login");
-  return <div className="admin-shell"><AdminNav /><main className="admin-main"><header className="admin-top"><span>早大Fortylove</span><span className="admin-user">{user.name} <small>{user.role === "super_admin" ? "最高管理者" : "管理者"}</small></span></header>{children}</main></div>;
+  const session = await getSession(); if (!session) redirect("/login");
+  const { data: user } = await db().from("users").select("name,role").eq("id", session.id).single();
+  if (!user || user.role === "member") redirect("/login");
+  return <div className="admin-shell"><AdminNav role={user.role as "admin" | "super_admin"} /><main className="admin-main"><header className="admin-top"><span>早大Fortylove</span><span className="admin-user">{user.name} <small>{user.role === "super_admin" ? "最高情報責任者" : "管理者"}</small></span></header>{children}</main></div>;
 }

@@ -1,4 +1,4 @@
-import { withdrawMember } from "@/app/actions";
+import { deleteMemberAccount } from "@/app/actions";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { db } from "@/lib/db";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function ActiveMembers() {
   const { data } = await db()
     .from("membership_applications")
-    .select("id,applied_at,user:users(name,university,faculty,department,grade,email,line_id)")
+    .select("id,applied_at,user:users(id,name,university,faculty,department,grade,email,line_id)")
     .eq("status", "approved")
     .order("applied_at", { ascending: false });
 
@@ -28,7 +28,7 @@ export default async function ActiveMembers() {
               <td>{Number(person?.grade) >= 5 ? "4年以上" : `${person?.grade}年`}</td>
               <td>{person?.email || "未登録"}<small>{person?.line_id && `LINE: ${person.line_id}`}</small></td>
               <td>{new Date(member.applied_at).toLocaleDateString("ja-JP")}</td>
-              <td><form action={withdrawMember}><input type="hidden" name="id" value={member.id} /><ConfirmSubmitButton className="danger table-withdraw" message={`${person?.name}さんを退会済みにしますか？`}>退会処理</ConfirmSubmitButton></form></td>
+              <td><form action={deleteMemberAccount}><input type="hidden" name="user_id" value={person?.id} /><ConfirmSubmitButton className="danger table-withdraw" message={`${person?.name}さんのアカウントと予約情報を削除します。元に戻せません。実行しますか？`}>退会・削除</ConfirmSubmitButton></form></td>
             </tr>;
           })}</tbody>
         </table>

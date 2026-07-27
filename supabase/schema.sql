@@ -70,12 +70,31 @@ create table audit_logs (
 );
 create index audit_logs_created_idx on audit_logs (created_at desc);
 
+create table membership_withdrawals (
+  id bigint generated always as identity primary key,
+  former_user_id uuid not null,
+  name text not null,
+  university text not null default '',
+  faculty text not null default '',
+  department text not null default '',
+  grade smallint,
+  email text not null default '',
+  line_id text,
+  tennis_experience text not null default '',
+  has_racket boolean not null default false,
+  reservation_history jsonb not null default '[]'::jsonb,
+  withdrawal_source text not null check (withdrawal_source in ('self', 'admin')),
+  withdrawn_by uuid references users(id) on delete set null,
+  withdrawn_at timestamptz not null default now()
+);
+
 alter table users enable row level security;
 alter table events enable row level security;
 alter table reservations enable row level security;
 alter table membership_applications enable row level security;
 alter table app_settings enable row level security;
 alter table audit_logs enable row level security;
+alter table membership_withdrawals enable row level security;
 
 -- This app only accesses the database from trusted Next.js server code using the service role.
 -- Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.

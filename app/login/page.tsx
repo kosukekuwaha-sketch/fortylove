@@ -3,8 +3,8 @@ import { ArrowRight, LockKeyhole, UserRound } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { login } from "@/app/actions";
 
-export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string }> }) {
+  const { error, deleted } = await searchParams;
   return <main className="auth-page">
     <section className="auth-art">
       <Brand />
@@ -14,6 +14,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
     <section className="auth-panel">
       <div className="auth-box"><div className="mobile-brand"><Brand /></div><p className="eyebrow green">MEMBER LOGIN</p><h2>おかえりなさい</h2><p className="muted">登録した名前とパスワードでログインしてください。</p>
         {error && <div className="alert">{error === "server" ? "データベースへ接続できませんでした。運営担当者に設定の確認を依頼してください。" : "名前またはパスワードが違います。"}</div>}
+        {deleted && <div className="success-message">退会手続きが完了し、アカウントを削除しました。</div>}
         <form action={login}>
           <label>名前<div className="input-wrap"><UserRound /><input name="name" autoComplete="username" placeholder="山田 太郎" required /></div></label>
           <label>パスワード<div className="input-wrap"><LockKeyhole /><input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required /></div></label>

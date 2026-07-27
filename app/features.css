@@ -124,6 +124,27 @@
 .admin-event-stats > span { display: grid; text-align: center; }
 .admin-event-stats strong { font-size: 24px; }
 .admin-event-stats small { color: var(--muted); }
+.applications-table { overflow-x: hidden; }
+.applications-table table { table-layout: fixed; white-space: normal; }
+.applications-table th:nth-child(1) { width: 24%; }
+.applications-table th:nth-child(2) { width: 30%; }
+.applications-table th:nth-child(3) { width: 16%; }
+.applications-table th:nth-child(4) { width: 30%; }
+.applications-table td { overflow-wrap: anywhere; }
+.applications-table td form { display: flex; align-items: center; gap: 7px; }
+.applications-table td select { min-width: 0; padding: 9px; }
+.applications-table .table-action { flex: 0 0 auto; margin-left: 0; }
+.role-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 14px;
+  align-items: end;
+  margin-top: 18px;
+}
+.role-form .primary { width: auto; }
+.inline-role-form { display: flex; align-items: center; gap: 7px; }
+.inline-role-form select { min-width: 140px; padding: 8px; }
+.inline-role-form .table-action { flex: 0 0 auto; margin-left: 0; }
 .admin-nav nav { margin-top: 32px; gap: 3px; }
 .admin-nav nav a { padding: 10px 12px; }
 .site-footer {
@@ -194,6 +215,8 @@
   .profile-edit-form .full { grid-column: auto; }
   .withdraw-panel { align-items: stretch; flex-direction: column; }
   .withdraw-panel .danger { width: 100%; }
+  .role-form { grid-template-columns: 1fr; }
+  .role-form .primary { width: 100%; }
   .site-footer {
     padding: 38px 20px 94px;
   }

@@ -88,25 +88,55 @@ export async function applyMembership() {
   revalidatePath("/home");
 }
 
-export async function withdrawMembership() {
+async function removeAvatarFiles(userId: string) {
+  const client = db();
+  const { data: files } = await client.storage.from("avatars").list(userId);
+  if (files?.length) {
+    await client.storage.from("avatars").remove(files.map((file) => `${userId}/${file.name}`));
+  }
+}
+
+async function archiveWithdrawal(userId: string, withdrawnBy: string, source: "self" | "admin") {
+  const client = db();
+  const [{ data: formerUser, error: userError }, { data: reservations, error: reservationError }] = await Promise.all([
+    client.from("users").select("id,name,university,faculty,department,grade,email,line_id,tennis_experience,has_racket").eq("id", userId).single(),
+    client.from("reservations").select("status,created_at,event:events(title,starts_at,location)").eq("user_id", userId),
+  ]);
+  if (userError || !formerUser || reservationError) return false;
+  const { error } = await client.from("membership_withdrawals").insert({
+    former_user_id: formerUser.id,
+    name: formerUser.name,
+    university: formerUser.university,
+    faculty: formerUser.faculty,
+    department: formerUser.department,
+    grade: formerUser.grade,
+    email: formerUser.email,
+    line_id: formerUser.line_id,
+    tennis_experience: formerUser.tennis_experience,
+    has_racket: formerUser.has_racket,
+    reservation_history: reservations ?? [],
+    withdrawal_source: source,
+    withdrawn_by: withdrawnBy,
+  });
+  return !error;
+}
+
+export async function deleteOwnAccount() {
   const user = await getSession();
   if (!user) redirect("/login");
   const client = db();
-  const { data, error } = await client
-    .from("membership_applications")
-    .update({ status: "withdrawn" })
-    .eq("user_id", user.id)
-    .eq("status", "approved")
-    .select("id")
-    .maybeSingle();
-  if (error || !data) redirect("/profile?error=withdraw");
+  if (!await archiveWithdrawal(user.id, user.id, "self")) redirect("/profile?error=delete");
   await client.from("audit_logs").insert({
     actor_id: user.id,
-    action: "membership.withdraw.self",
-    target_type: "application",
-    target_id: data.id,
+    action: "account.delete.self",
+    target_type: "user",
+    target_id: user.id,
   });
-  redirect("/home");
+  await removeAvatarFiles(user.id);
+  const { error } = await client.from("users").delete().eq("id", user.id);
+  if (error) redirect("/profile?error=delete");
+  await clearSession();
+  redirect("/login?deleted=1");
 }
 
 export async function updateProfile(fd: FormData) {
@@ -176,9 +206,28 @@ export async function updateProfile(fd: FormData) {
 }
 
 async function requireAdmin() {
-  const user = await getSession();
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const { data: user } = await db().from("users").select("id,name,role").eq("id", session.id).single();
   if (!user || user.role === "member") redirect("/login");
   return user;
+}
+
+export async function updateUserRole(fd: FormData) {
+  const user = await requireAdmin();
+  if (user.role !== "super_admin") redirect("/admin");
+  const userId = text(fd, "user_id");
+  const role = text(fd, "role");
+  if (userId === user.id || !["member", "admin", "super_admin"].includes(role)) return;
+  const client = db();
+  await client.from("users").update({ role }).eq("id", userId);
+  await client.from("audit_logs").insert({
+    actor_id: user.id,
+    action: "user.role.update",
+    target_type: "user",
+    target_id: userId,
+  });
+  revalidatePath("/admin/admins");
 }
 
 export async function createEvent(fd: FormData) {
@@ -201,16 +250,18 @@ export async function updateApplication(fd: FormData) {
   revalidatePath("/admin/applications");
 }
 
-export async function withdrawMember(fd: FormData) {
+export async function deleteMemberAccount(fd: FormData) {
   const user = await requireAdmin();
-  const id = text(fd, "id");
+  const userId = text(fd, "user_id");
   const client = db();
-  await client.from("membership_applications").update({ status: "withdrawn" }).eq("id", id).eq("status", "approved");
+  if (!await archiveWithdrawal(userId, user.id, "admin")) redirect("/admin/members?error=delete");
+  await removeAvatarFiles(userId);
+  await client.from("users").delete().eq("id", userId).eq("role", "member");
   await client.from("audit_logs").insert({
     actor_id: user.id,
-    action: "membership.withdraw.admin",
-    target_type: "application",
-    target_id: id,
+    action: "account.delete.admin",
+    target_type: "user",
+    target_id: userId,
   });
   revalidatePath("/admin/members");
   revalidatePath("/admin/applications");
