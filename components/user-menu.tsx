@@ -13,7 +13,7 @@ export function UserMenu({ name, avatarUrl }: { name: string; avatarUrl?: string
       <div className="user-menu-panel">
         <p>{name}さん</p>
         <Link href="/profile"><UserRound />プロフィール編集</Link>
-        <form action={logout}>
+        <form action={logout} className="mobile-logout-form">
           <ConfirmSubmitButton message="ログアウトしますか？"><LogOut />ログアウト</ConfirmSubmitButton>
         </form>
       </div>

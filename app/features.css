@@ -88,6 +88,8 @@
 .user-menu-panel button:hover { background: var(--cream); }
 .user-menu-panel svg { width: 17px; height: 17px; }
 .user-menu-panel form { margin: 0; }
+.mobile-logout-form { display: block !important; }
+.mobile-logout-form button { display: flex !important; width: 100%; align-items: center; gap: 10px; }
 .event-date strong { white-space: nowrap; }
 .event-main { min-width: 0; }
 .event-main h3,
@@ -359,7 +361,8 @@
   .admin-mobile-menu > summary > span { display: flex; align-items: center; gap: 7px; padding: 9px 11px; border: 1px solid #ffffff28; border-radius: 8px; font-size: 12px; }
   .admin-mobile-menu > summary svg { width: 18px; height: 18px; }
   .admin-mobile-menu nav { display: grid; overflow: visible; margin-top: 15px; }
-  .admin-mobile-menu form { display: block; margin-top: 8px; }
+  .admin-mobile-menu .mobile-logout-form { display: block !important; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ffffff1f; }
+  .admin-mobile-menu .mobile-logout-form button { color: white; background: #ffffff0c; }
   .scroll-to-top { right: 16px; bottom: 88px; width: 42px; height: 42px; }
   .member-tabs { display: none; }
   .bottom-nav { grid-template-columns: repeat(4, 1fr); }
