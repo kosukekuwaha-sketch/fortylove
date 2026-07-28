@@ -29,6 +29,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
   return <main className="member-shell">
     <ClearRegistrationDraft />
     <header className="member-header"><Brand /><UserMenu name={user.name} avatarUrl={profile?.avatar_url} /></header>
+    <MemberNav active="home" />
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>練習やイベントをチェックして、Fortyloveを楽しみましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
       {error === "full" && <div className="alert">申し訳ございません。定員がいっぱいになってしまっています。</div>}
@@ -45,6 +46,5 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
       })}</div>
     </section>
     <SiteFooter />
-    <MemberNav active="home" />
   </main>;
 }

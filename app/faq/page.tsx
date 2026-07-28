@@ -18,6 +18,7 @@ export default async function FaqPage() {
   const categories = [...new Set((faqs ?? []).map((faq) => faq.category))];
   return <main className="member-shell faq-page">
     <header className="member-header"><Brand /><UserMenu name={user?.name ?? session.name} avatarUrl={user?.avatar_url} /></header>
+    <MemberNav active="faq" />
     <section className="faq-hero"><p className="eyebrow green">HELP CENTER</p><h1>よくある質問</h1><p>練習・イベントや入会について、よくある質問をまとめています。</p></section>
     <section className="faq-content">
       {categories.map((category) => <section className="faq-category" key={category}><h2>{category}</h2><div className="faq-list">
@@ -25,6 +26,5 @@ export default async function FaqPage() {
       </div></section>)}
       {!faqs?.length && <div className="empty"><p>現在、公開中のFAQはありません。</p></div>}
     </section>
-    <MemberNav active="faq" />
   </main>;
 }

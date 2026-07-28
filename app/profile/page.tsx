@@ -18,6 +18,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
   const { data: user } = await db().from("users").select("*").eq("id", session.id).single();
   return <main className="member-shell">
     <header className="member-header"><Brand /><UserMenu name={session.name} avatarUrl={user?.avatar_url} /></header>
+    <MemberNav active="profile" />
     <section className="profile-card">
       <div className={`profile-avatar${user?.avatar_url ? " has-image" : ""}`}>{user?.avatar_url ? <img src={user.avatar_url} alt="" /> : session.name[0]}</div>
       <h1>{session.name}</h1>
@@ -48,6 +49,5 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
       <section className="withdraw-panel"><strong>退会手続き</strong><form action={deleteOwnAccount}><ConfirmSubmitButton className="danger" message="退会するとアカウントと予約情報が削除され、元に戻せません。本当に退会しますか？">退会してアカウントを削除</ConfirmSubmitButton></form></section>
       <form action={logout}><ConfirmSubmitButton className="secondary" message="ログアウトしますか？">ログアウト</ConfirmSubmitButton></form>
     </section>
-    <MemberNav active="profile" />
   </main>;
 }
