@@ -227,7 +227,25 @@ export async function updateUserRole(fd: FormData) {
     target_type: "user",
     target_id: userId,
   });
-  revalidatePath("/admin/admins");
+  redirect("/admin/admins?role_updated=1");
+}
+
+export async function updateUsersRole(fd: FormData) {
+  const user = await requireAdmin();
+  if (user.role !== "super_admin") redirect("/admin");
+  const userIds = fd.getAll("user_ids").map(String).filter((id) => id && id !== user.id);
+  const role = text(fd, "role");
+  if (!userIds.length || !["admin", "super_admin"].includes(role)) redirect("/admin/admins?error=selection");
+  const client = db();
+  const { error } = await client.from("users").update({ role }).in("id", userIds).eq("role", "member");
+  if (error) redirect("/admin/admins?error=role-update");
+  await client.from("audit_logs").insert(userIds.map((targetId) => ({
+    actor_id: user.id,
+    action: "user.role.update",
+    target_type: "user",
+    target_id: targetId,
+  })));
+  redirect(`/admin/admins?role_updated=${userIds.length}`);
 }
 
 export async function resetUserPassword(fd: FormData) {
@@ -283,8 +301,46 @@ export async function deleteMemberAccount(fd: FormData) {
     target_type: "user",
     target_id: userId,
   });
-  revalidatePath("/admin/members");
-  revalidatePath("/admin/applications");
+  redirect("/admin/members?deleted=1");
+}
+
+export async function deleteMemberAccounts(fd: FormData) {
+  const user = await requireAdmin();
+  if (user.role !== "super_admin") redirect("/admin");
+  const userIds = [...new Set(fd.getAll("user_ids").map(String).filter(Boolean))];
+  if (!userIds.length) redirect("/admin/members?error=selection");
+  let deleted = 0;
+  for (const userId of userIds) {
+    if (!await archiveWithdrawal(userId, user.id, "admin")) continue;
+    await removeAvatarFiles(userId);
+    const { error } = await db().from("users").delete().eq("id", userId).eq("role", "member");
+    if (!error) {
+      deleted += 1;
+      await db().from("audit_logs").insert({
+        actor_id: user.id,
+        action: "account.delete.admin",
+        target_type: "user",
+        target_id: userId,
+      });
+    }
+  }
+  if (!deleted) redirect("/admin/members?error=delete");
+  redirect(`/admin/members?deleted=${deleted}`);
+}
+
+export async function deleteWithdrawalRecords(fd: FormData) {
+  const user = await requireAdmin();
+  if (user.role !== "super_admin") redirect("/admin");
+  const ids = [...new Set(fd.getAll("withdrawal_ids").map(String).filter(Boolean))];
+  if (!ids.length) redirect("/admin/withdrawals?error=selection");
+  const { error } = await db().from("membership_withdrawals").delete().in("id", ids);
+  if (error) redirect("/admin/withdrawals?error=delete");
+  await db().from("audit_logs").insert({
+    actor_id: user.id,
+    action: "withdrawal.archive.delete",
+    target_type: "membership_withdrawals",
+  });
+  redirect(`/admin/withdrawals?deleted=${ids.length}`);
 }
 
 export async function updateAttendance(fd: FormData) {

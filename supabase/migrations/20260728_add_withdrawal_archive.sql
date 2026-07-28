@@ -19,7 +19,7 @@ create table if not exists public.membership_withdrawals (
 
 alter table public.membership_withdrawals enable row level security;
 
-grant select, insert
+grant select, insert, delete
 on table public.membership_withdrawals
 to service_role;
 

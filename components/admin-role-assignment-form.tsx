@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { updateUserRole } from "@/app/actions";
+import { updateUsersRole } from "@/app/actions";
 import { ConfirmSubmitButton } from "./confirm-submit-button";
 
 type RoleCandidate = {
@@ -13,12 +13,13 @@ type RoleCandidate = {
 
 export function AdminRoleAssignmentForm({ users }: { users: RoleCandidate[] }) {
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<RoleCandidate | null>(null);
+  const [selected, setSelected] = useState<RoleCandidate[]>([]);
   const [role, setRole] = useState("admin");
   const results = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase("ja");
-    if (!keyword || selected) return [];
+    if (!keyword) return [];
     return users.filter((user) =>
+      !selected.some((item) => item.id === user.id) &&
       [user.name, user.university, user.email].some((value) =>
         value?.toLocaleLowerCase("ja").includes(keyword),
       ),
@@ -26,7 +27,7 @@ export function AdminRoleAssignmentForm({ users }: { users: RoleCandidate[] }) {
   }, [query, selected, users]);
 
   return (
-    <form action={updateUserRole} className="role-form">
+    <form action={updateUsersRole} className="role-form">
       <label className="user-search">対象ユーザー
         <input
           value={query}
@@ -34,20 +35,20 @@ export function AdminRoleAssignmentForm({ users }: { users: RoleCandidate[] }) {
           autoComplete="off"
           onChange={(event) => {
             setQuery(event.target.value);
-            setSelected(null);
           }}
         />
-        <input type="hidden" name="user_id" value={selected?.id ?? ""} />
+        {selected.map((user) => <input key={user.id} type="hidden" name="user_ids" value={user.id} />)}
         {results.length > 0 && <div className="user-search-results">
           {results.map((user) => <button type="button" key={user.id} onClick={() => {
-            setSelected(user);
-            setQuery(`${user.name}（${user.university}）`);
+            setSelected((current) => [...current, user]);
+            setQuery("");
           }}>
             <strong>{user.name}</strong>
             <small>{user.university}{user.email ? `・${user.email}` : ""}</small>
           </button>)}
         </div>}
-        {query && !selected && results.length === 0 && <small>一致するユーザーがいません</small>}
+        {query && results.length === 0 && <small>一致するユーザーがいません</small>}
+        {selected.length > 0 && <div className="selected-users">{selected.map((user) => <button type="button" key={user.id} onClick={() => setSelected((current) => current.filter((item) => item.id !== user.id))}>{user.name}<span>×</span></button>)}</div>}
       </label>
       <label>付与する権限
         <select name="role" value={role} onChange={(event) => setRole(event.target.value)}>
@@ -57,8 +58,8 @@ export function AdminRoleAssignmentForm({ users }: { users: RoleCandidate[] }) {
       </label>
       <ConfirmSubmitButton
         className="primary"
-        disabled={!selected}
-        message={`${selected?.name ?? "選択したユーザー"}へ${role === "super_admin" ? "最高情報責任者" : "管理者"}権限を付与しますか？`}
+        disabled={!selected.length}
+        message={`選択した${selected.length}名へ${role === "super_admin" ? "最高情報責任者" : "管理者"}権限を付与しますか？`}
       >
         権限を付与
       </ConfirmSubmitButton>
