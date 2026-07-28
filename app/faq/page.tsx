@@ -11,17 +11,22 @@ export default async function FaqPage() {
   const session = await getSession();
   if (!session) redirect("/login");
   const client = db();
-  const [{ data: user }, { data: faqs }] = await Promise.all([
+  const [{ data: user }, { data: faqs }, { data: categories }] = await Promise.all([
     client.from("users").select("name,avatar_url").eq("id", session.id).single(),
     client.from("faqs").select("id,question,answer,category").eq("is_published", true).order("sort_order").order("created_at"),
+    client.from("faq_categories").select("name").order("sort_order").order("name"),
   ]);
-  const categories = [...new Set((faqs ?? []).map((faq) => faq.category))];
+  const usedCategories = [...new Set((faqs ?? []).map((faq) => faq.category))];
+  const categoryNames = [
+    ...(categories ?? []).map((category) => category.name).filter((name) => usedCategories.includes(name)),
+    ...usedCategories.filter((name) => !(categories ?? []).some((category) => category.name === name)),
+  ];
   return <main className="member-shell faq-page">
     <header className="member-header"><Brand /><UserMenu name={user?.name ?? session.name} avatarUrl={user?.avatar_url} /></header>
     <MemberNav active="faq" />
     <section className="faq-hero"><p className="eyebrow green">HELP CENTER</p><h1>よくある質問</h1><p>練習・イベントや入会について、よくある質問をまとめています。</p></section>
     <section className="faq-content">
-      {categories.map((category) => <section className="faq-category" key={category}><h2>{category}</h2><div className="faq-list">
+      {categoryNames.map((category) => <section className="faq-category" key={category}><h2>{category}</h2><div className="faq-list">
         {faqs?.filter((faq) => faq.category === category).map((faq) => <details className="faq-item" key={faq.id}><summary>{faq.question}</summary><p>{faq.answer}</p></details>)}
       </div></section>)}
       {!faqs?.length && <div className="empty"><p>現在、公開中のFAQはありません。</p></div>}

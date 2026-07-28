@@ -320,6 +320,33 @@ export async function createFaq(fd: FormData) {
   redirect("/admin/faqs?created=1");
 }
 
+export async function createFaqCategory(fd: FormData) {
+  const user = await requireAdmin();
+  const name = text(fd, "name");
+  if (!name) redirect("/admin/faqs?error=category");
+  const client = db();
+  const { data, error } = await client.from("faq_categories").insert({
+    name,
+    sort_order: Number(text(fd, "sort_order")) || 0,
+  }).select("id").single();
+  if (error) redirect("/admin/faqs?error=category");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.category.create", target_type: "faq_category", target_id: data?.id });
+  redirect("/admin/faqs?category_created=1");
+}
+
+export async function deleteFaqCategory(fd: FormData) {
+  const user = await requireAdmin();
+  const categoryId = text(fd, "category_id");
+  const categoryName = text(fd, "category_name");
+  const client = db();
+  const { count } = await client.from("faqs").select("*", { count: "exact", head: true }).eq("category", categoryName);
+  if (count) redirect("/admin/faqs?error=category-used");
+  const { error } = await client.from("faq_categories").delete().eq("id", categoryId);
+  if (error) redirect("/admin/faqs?error=category");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.category.delete", target_type: "faq_category", target_id: categoryId });
+  redirect("/admin/faqs?category_deleted=1");
+}
+
 export async function updateFaq(fd: FormData) {
   const user = await requireAdmin();
   const faqId = text(fd, "faq_id");

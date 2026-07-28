@@ -100,6 +100,13 @@ create table faqs (
 );
 create index faqs_display_order_idx on faqs (is_published, sort_order, created_at);
 
+create table faq_categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
 alter table users enable row level security;
 alter table events enable row level security;
 alter table reservations enable row level security;
@@ -108,6 +115,7 @@ alter table app_settings enable row level security;
 alter table audit_logs enable row level security;
 alter table membership_withdrawals enable row level security;
 alter table faqs enable row level security;
+alter table faq_categories enable row level security;
 
 -- This app only accesses the database from trusted Next.js server code using the service role.
 -- Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.

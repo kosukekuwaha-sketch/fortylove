@@ -148,6 +148,12 @@
 .faq-admin-form .full { grid-column: 1 / -1; }
 .faq-admin-form textarea { min-height: 90px; }
 .faq-delete-form { display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.faq-category-form { display: grid; grid-template-columns: 1fr 130px auto; gap: 14px; align-items: end; margin: 18px 0; }
+.faq-category-form .primary { width: auto; }
+.faq-category-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.faq-category-chips > span { display: flex; align-items: center; gap: 7px; padding: 7px 9px 7px 12px; border-radius: 999px; background: #eaf1ec; color: var(--green); font-size: 12px; font-weight: 700; }
+.faq-category-chips form { display: flex; }
+.faq-category-chips button { display: grid; width: 22px; height: 22px; padding: 0; place-items: center; border: 0; border-radius: 50%; background: #ffffffaa; color: var(--danger); }
 .member-tabs {
   position: sticky;
   z-index: 9;
@@ -340,6 +346,8 @@
   .role-form { grid-template-columns: 1fr; }
   .faq-admin-form { grid-template-columns: 1fr; }
   .faq-admin-form .full { grid-column: auto; }
+  .faq-category-form { grid-template-columns: 1fr; }
+  .faq-category-form .primary { width: 100%; }
   .role-form .primary { width: 100%; }
   .bulk-toolbar { align-items: stretch; flex-direction: column; }
   .bulk-toolbar .danger { width: 100%; }
