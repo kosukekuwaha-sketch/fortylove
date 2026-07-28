@@ -84,7 +84,10 @@ export async function cancelReservation(fd: FormData) {
 export async function applyMembership() {
   const user = await getSession();
   if (!user) redirect("/login");
-  await db().from("membership_applications").upsert({ user_id: user.id, status: "pending" }, { onConflict: "user_id", ignoreDuplicates: true });
+  const client = db();
+  const { count } = await client.from("reservations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "attended");
+  if (!count) redirect("/home?error=attendance");
+  await client.from("membership_applications").upsert({ user_id: user.id, status: "pending" }, { onConflict: "user_id", ignoreDuplicates: true });
   revalidatePath("/home");
 }
 
@@ -407,7 +410,13 @@ export async function deleteWithdrawalRecords(fd: FormData) {
 }
 
 export async function updateAttendance(fd: FormData) {
-  await requireAdmin();
-  await db().from("reservations").update({ status: text(fd, "status") }).eq("id", text(fd, "id"));
-  revalidatePath("/admin/events");
+  const user = await requireAdmin();
+  const reservationId = text(fd, "id");
+  const status = text(fd, "status");
+  if (!["reserved", "cancelled", "attended"].includes(status)) redirect("/admin/events?error=attendance");
+  const client = db();
+  const { error } = await client.from("reservations").update({ status }).eq("id", reservationId);
+  if (error) redirect("/admin/events?error=attendance");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: "reservation.attendance.update", target_type: "reservation", target_id: reservationId });
+  redirect("/admin/events?attendance_updated=1");
 }
