@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, LockKeyhole, UserRound } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { login } from "@/app/actions";
+import { TimeGreeting } from "@/components/time-greeting";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string }> }) {
   const { error, deleted } = await searchParams;
@@ -12,7 +13,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       <div className="auth-message"><p className="eyebrow">WELCOME TO THE COURT</p><h1>最高の日々を、<br />ここから。</h1><p>練習の予定も、仲間との出会いも。<br />Fortyのすべてをひとつの場所で。</p></div>
     </section>
     <section className="auth-panel">
-      <div className="auth-box"><div className="mobile-brand"><Brand /></div><p className="eyebrow green">MEMBER LOGIN</p><h2>おかえりなさい</h2><p className="muted">登録した名前とパスワードでログインしてください。</p>
+      <div className="auth-box"><div className="mobile-brand"><Brand /></div><p className="eyebrow green">MEMBER LOGIN</p><TimeGreeting /><p className="muted">登録した名前とパスワードでログインしてください。</p>
         {error && <div className="alert">{error === "server" ? "データベースへ接続できませんでした。運営担当者に設定の確認を依頼してください。" : "名前またはパスワードが違います。"}</div>}
         {deleted && <div className="success-message">退会手続きが完了し、アカウントを削除しました。</div>}
         <form action={login}>
