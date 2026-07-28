@@ -9,7 +9,9 @@ export const dynamic = "force-dynamic";
 
 export default async function Withdrawals({ searchParams }: { searchParams: Promise<{ deleted?: string; error?: string }> }) {
   const session = await getSession();
-  if (!session || session.role !== "super_admin") redirect("/admin");
+  if (!session) redirect("/login");
+  const { data: currentUser } = await db().from("users").select("role").eq("id", session.id).single();
+  if (currentUser?.role !== "super_admin") redirect("/admin");
   const { deleted, error } = await searchParams;
   const { data } = await db().from("membership_withdrawals").select("*").order("withdrawn_at", { ascending: false });
 

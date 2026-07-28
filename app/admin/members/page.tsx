@@ -8,7 +8,10 @@ export const dynamic = "force-dynamic";
 
 export default async function ActiveMembers({ searchParams }: { searchParams: Promise<{ deleted?: string; error?: string }> }) {
   const session = await getSession();
-  const isSuperAdmin = session?.role === "super_admin";
+  const { data: currentUser } = session
+    ? await db().from("users").select("role").eq("id", session.id).single()
+    : { data: null };
+  const isSuperAdmin = currentUser?.role === "super_admin";
   const { deleted, error } = await searchParams;
   const { data } = await db()
     .from("membership_applications")

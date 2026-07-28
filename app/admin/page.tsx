@@ -6,7 +6,10 @@ export const dynamic = "force-dynamic";
 export default async function Members({ searchParams }: { searchParams: Promise<{ q?: string; university?: string; page?: string; error?: string; password_reset?: string }> }) {
   const { q = "", university = "", page = "1", error, password_reset } = await searchParams; const size = 20; const from = (Number(page) - 1) * size;
   const session = await getSession();
-  const isSuperAdmin = session?.role === "super_admin";
+  const { data: currentUser } = session
+    ? await db().from("users").select("role").eq("id", session.id).single()
+    : { data: null };
+  const isSuperAdmin = currentUser?.role === "super_admin";
   let query = db().from("users").select("*", { count: "exact" }).eq("role", "member").range(from, from + size - 1).order("created_at", { ascending: false });
   if (q) query = query.ilike("name", `%${q}%`); if (university) query = query.eq("university", university);
   const { data, count } = await query;

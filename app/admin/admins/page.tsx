@@ -9,7 +9,9 @@ export const dynamic = "force-dynamic";
 
 export default async function Administrators({ searchParams }: { searchParams: Promise<{ role_updated?: string; error?: string }> }) {
   const session = await getSession();
-  if (!session || session.role !== "super_admin") redirect("/admin");
+  if (!session) redirect("/login");
+  const { data: currentUser } = await db().from("users").select("role").eq("id", session.id).single();
+  if (currentUser?.role !== "super_admin") redirect("/admin");
   const { role_updated, error } = await searchParams;
   const { data: users } = await db().from("users").select("id,name,university,faculty,email,line_id,role,created_at").order("name");
   const data = users?.filter(user => user.role === "admin" || user.role === "super_admin");
