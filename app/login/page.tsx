@@ -9,7 +9,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
     <section className="auth-art">
       <Brand />
       <div className="ball ball-one" /><div className="ball ball-two" />
-      <div className="auth-message"><p className="eyebrow">WELCOME TO THE COURT</p><h1>最高の春を、<br />ここから。</h1><p>練習の予定も、仲間との出会いも。<br />新歓のすべてをひとつの場所で。</p></div>
+      <div className="auth-message"><p className="eyebrow">WELCOME TO THE COURT</p><h1>最高の大学生活を<br />Fortyで。</h1><p>練習の予定も、仲間との出会いも。<br />Fortyのすべてをひとつの場所で。</p></div>
     </section>
     <section className="auth-panel">
       <div className="auth-box"><div className="mobile-brand"><Brand /></div><p className="eyebrow green">MEMBER LOGIN</p><h2>おかえりなさい</h2><p className="muted">登録した名前とパスワードでログインしてください。</p>
