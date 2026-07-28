@@ -124,6 +124,7 @@
 .admin-event-stats > span { display: grid; text-align: center; }
 .admin-event-stats strong { font-size: 24px; }
 .admin-event-stats small { color: var(--muted); }
+.admin-event-stats .event-delete { width: auto; padding: 8px 14px; margin-top: 4px; }
 .applications-table { overflow-x: hidden; }
 .applications-table table { table-layout: fixed; white-space: normal; }
 .applications-table th:nth-child(1) { width: 24%; }

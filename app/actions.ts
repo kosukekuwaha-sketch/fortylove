@@ -280,6 +280,29 @@ export async function createEvent(fd: FormData) {
   revalidatePath("/admin/events");
 }
 
+export async function deleteEvent(fd: FormData) {
+  const user = await requireAdmin();
+  const eventId = text(fd, "event_id");
+  if (!eventId) redirect("/admin/events?error=selection");
+  const client = db();
+  const { error } = await client.from("events").delete().eq("id", eventId);
+  if (error) {
+    console.error("Event delete error", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+    });
+    redirect("/admin/events?error=delete");
+  }
+  await client.from("audit_logs").insert({
+    actor_id: user.id,
+    action: "event.delete",
+    target_type: "event",
+    target_id: eventId,
+  });
+  redirect("/admin/events?deleted=1");
+}
+
 export async function updateApplication(fd: FormData) {
   const user = await requireAdmin();
   const id = text(fd, "id");
