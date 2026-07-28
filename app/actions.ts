@@ -303,6 +303,46 @@ export async function deleteEvent(fd: FormData) {
   redirect("/admin/events?deleted=1");
 }
 
+export async function createFaq(fd: FormData) {
+  const user = await requireAdmin();
+  const client = db();
+  const { data, error } = await client.from("faqs").insert({
+    question: text(fd, "question"), answer: text(fd, "answer"),
+    category: text(fd, "category") || "その他",
+    sort_order: Number(text(fd, "sort_order")) || 0,
+    is_published: text(fd, "is_published") === "true",
+  }).select("id").single();
+  if (error) redirect("/admin/faqs?error=create");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.create", target_type: "faq", target_id: data?.id });
+  redirect("/admin/faqs?created=1");
+}
+
+export async function updateFaq(fd: FormData) {
+  const user = await requireAdmin();
+  const faqId = text(fd, "faq_id");
+  const client = db();
+  const { error } = await client.from("faqs").update({
+    question: text(fd, "question"), answer: text(fd, "answer"),
+    category: text(fd, "category") || "その他",
+    sort_order: Number(text(fd, "sort_order")) || 0,
+    is_published: text(fd, "is_published") === "true",
+    updated_at: new Date().toISOString(),
+  }).eq("id", faqId);
+  if (error) redirect("/admin/faqs?error=update");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.update", target_type: "faq", target_id: faqId });
+  redirect("/admin/faqs?updated=1");
+}
+
+export async function deleteFaq(fd: FormData) {
+  const user = await requireAdmin();
+  const faqId = text(fd, "faq_id");
+  const client = db();
+  const { error } = await client.from("faqs").delete().eq("id", faqId);
+  if (error) redirect("/admin/faqs?error=delete");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.delete", target_type: "faq", target_id: faqId });
+  redirect("/admin/faqs?deleted=1");
+}
+
 export async function updateApplication(fd: FormData) {
   const user = await requireAdmin();
   const id = text(fd, "id");

@@ -88,6 +88,18 @@ create table membership_withdrawals (
   withdrawn_at timestamptz not null default now()
 );
 
+create table faqs (
+  id uuid primary key default gen_random_uuid(),
+  question text not null,
+  answer text not null,
+  category text not null default 'その他',
+  sort_order integer not null default 0,
+  is_published boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index faqs_display_order_idx on faqs (is_published, sort_order, created_at);
+
 alter table users enable row level security;
 alter table events enable row level security;
 alter table reservations enable row level security;
@@ -95,6 +107,7 @@ alter table membership_applications enable row level security;
 alter table app_settings enable row level security;
 alter table audit_logs enable row level security;
 alter table membership_withdrawals enable row level security;
+alter table faqs enable row level security;
 
 -- This app only accesses the database from trusted Next.js server code using the service role.
 -- Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.
