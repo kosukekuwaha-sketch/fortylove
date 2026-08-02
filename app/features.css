@@ -140,6 +140,9 @@ select:disabled {
 .mobile-logout-form { display: block !important; }
 .mobile-logout-form button { display: flex !important; width: 100%; align-items: center; gap: 10px; }
 .event-date strong { white-space: nowrap; }
+.event-date.date-range { display: grid; justify-items: center; gap: 3px; }
+.event-date.date-range strong { font-size: 16px; }
+.event-date.date-range b { color: var(--muted); font-size: 13px; font-weight: 500; line-height: 1; }
 .event-main { min-width: 0; }
 .event-main h3,
 .event-main p,

@@ -13,7 +13,11 @@ import { ParticipationCalendar } from "@/components/participation-calendar";
 import { LinkifiedText } from "@/components/linkified-text";
 
 export const dynamic = "force-dynamic";
-const dateLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric", weekday: "short" }).format(new Date(iso));
+const dateParts = (iso: string) => {
+  const parts = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric", weekday: "short" }).formatToParts(new Date(iso));
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return { key: `${value.year}-${value.month}-${value.day}`, label: `${value.month}月${value.day}日`, weekday: value.weekday };
+};
 const timeLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ error?: string; reserved?: string; cancelled?: string }> }) {
@@ -43,8 +47,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
       <div className="event-list">{events?.map(event => {
         const booked = status.get(event.id) === "reserved";
         const count = event.reservations.filter((r: {status:string}) => r.status === "reserved").length;
+        const startDate = dateParts(event.starts_at);
+        const endDate = dateParts(event.ends_at);
+        const spansMultipleDays = startDate.key !== endDate.key;
         return <article className="event-card" id={`event-${event.id}`} key={event.id}>
-          <div className="event-date"><strong>{dateLabel(event.starts_at).split("日")[0]}日</strong><span>{dateLabel(event.starts_at).split("日")[1]}</span></div>
+          <div className={`event-date${spansMultipleDays ? " date-range" : ""}`}><div><strong>{startDate.label}</strong><span>（{startDate.weekday}）</span></div>{spansMultipleDays && <><b>～</b><div><strong>{endDate.label}</strong><span>（{endDate.weekday}）</span></div></>}</div>
           <div className="event-main"><h3>{event.title}</h3><div className="event-meta"><span><Clock3 />{timeLabel(event.starts_at)}–{timeLabel(event.ends_at)}</span><span><MapPin />{event.location}</span><span><UsersRound />{count}/{event.capacity}名</span></div><p><LinkifiedText text={event.description} /></p></div>
           <form action={booked ? cancelReservation : reserve}><input type="hidden" name="event_id" value={event.id}/><ConfirmSubmitButton className={booked ? "booked" : "reserve"} disabled={!booked && count >= event.capacity} message={booked ? `「${event.title}」の予約をキャンセルしますか？` : `「${event.title}」に参加予約しますか？`}>{booked ? "予約済み" : count >= event.capacity ? "満員" : "予約する"}</ConfirmSubmitButton></form>
         </article>;
