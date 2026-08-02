@@ -93,7 +93,9 @@ export async function register(fd: FormData) {
     name, password_hash: await bcrypt.hash(password, 12), university: text(fd, "university"),
     faculty: text(fd, "faculty"), department: text(fd, "department"), grade: Number(text(fd, "grade")),
     instagram_id: text(fd, "instagram_id") || null, line_display_name: text(fd, "line_display_name") || null,
-    tennis_experience: text(fd, "tennis_experience"), role: "member",
+    tennis_experience: text(fd, "tennis_experience"),
+    has_racket: text(fd, "has_racket") === "true",
+    role: "member",
   }).select("id,name,role").single();
   if (error || !data) redirect("/register?error=server");
   await setSession(data);

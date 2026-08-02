@@ -14,6 +14,7 @@ export default async function Register({ searchParams }: { searchParams: Promise
         <label className="full">名前<input name="name" placeholder="山田 太郎" required /></label>
         <UniversityFields />
         <label>学年<select name="grade" required><option value="1">1年</option><option value="2">2年</option><option value="3">3年</option><option value="4">4年</option><option value="5">4年以上</option></select></label>
+        <label>ラケット所持状況<select name="has_racket" defaultValue="" required><option value="" disabled>選択してください</option><option value="true">持っている</option><option value="false">持っていない</option></select><small>貸出ラケット準備の参考にします</small></label>
         <label>Instagram ID（任意）<input name="instagram_id" placeholder="@を除いて入力" autoComplete="off" /></label>
         <label>LINEの表示名（任意）<input name="line_display_name" placeholder="LINEで表示されている名前" autoComplete="off" /></label>
         <label className="full">テニス経験<textarea name="tennis_experience" placeholder="例：中学で軟式テニスを3年間、大学から硬式を始めたい など" /></label>
