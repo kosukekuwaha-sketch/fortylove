@@ -10,14 +10,15 @@ import { UserMenu } from "@/components/user-menu";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SiteFooter } from "@/components/site-footer";
 import { ParticipationCalendar } from "@/components/participation-calendar";
+import { LinkifiedText } from "@/components/linkified-text";
 
 export const dynamic = "force-dynamic";
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric", weekday: "short" }).format(new Date(iso));
 const timeLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ error?: string; reserved?: string; cancelled?: string }> }) {
   const user = await getSession(); if (!user) redirect("/login");
-  const { error } = await searchParams;
+  const { error, reserved, cancelled } = await searchParams;
   const client = db();
   const [{ data: events }, { data: reservations }, { data: profile }] = await Promise.all([
     client.from("events").select("*,reservations(id,status)").gte("ends_at", new Date().toISOString()).order("starts_at"),
@@ -25,7 +26,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     client.from("users").select("avatar_url").eq("id", user.id).maybeSingle(),
   ]);
   const status = new Map(reservations?.map(r => [r.event_id, r.status]));
-  const participationEvents = (events ?? []).filter((event) => ["reserved", "attended"].includes(status.get(event.id) ?? "")).map((event) => ({ id: event.id, title: event.title, starts_at: event.starts_at, event_type: event.event_type }));
+  const participationEvents = (events ?? []).filter((event) => ["reserved", "attended"].includes(status.get(event.id) ?? "")).map((event) => ({ id: event.id, title: event.title, location: event.location, starts_at: event.starts_at, event_type: event.event_type }));
   return <main className="member-shell">
     <ClearRegistrationDraft />
     <header className="member-header"><Brand /><UserMenu name={user.name} avatarUrl={profile?.avatar_url} /></header>
@@ -33,14 +34,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>練習やイベントをチェックして、Fortyloveを楽しみましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
       {error === "full" && <div className="alert">申し訳ございません。定員がいっぱいになってしまっています。</div>}
-      <ParticipationCalendar events={participationEvents} />
+      {error === "reservation" && <div className="alert">予約を登録できませんでした。もう一度お試しください。</div>}
+      {error === "cancel-deadline" && <div className="alert">開始2時間前を過ぎた予定は、画面からキャンセルできません。</div>}
+      {reserved && <div className="success-message">参加予約を登録し、カレンダーへ反映しました。</div>}
+      {cancelled && <div className="success-message">参加予約をキャンセルしました。</div>}
+      <ParticipationCalendar events={participationEvents} focusEventId={reserved} />
       <div className="section-head"><div><p className="eyebrow green">UPCOMING</p><h2 id="events">これからのイベント</h2></div><span className="count">{events?.length ?? 0}件</span></div>
       <div className="event-list">{events?.map(event => {
         const booked = status.get(event.id) === "reserved";
         const count = event.reservations.filter((r: {status:string}) => r.status === "reserved").length;
-        return <article className="event-card" key={event.id}>
+        return <article className="event-card" id={`event-${event.id}`} key={event.id}>
           <div className="event-date"><strong>{dateLabel(event.starts_at).split("日")[0]}日</strong><span>{dateLabel(event.starts_at).split("日")[1]}</span></div>
-          <div className="event-main"><h3>{event.title}</h3><div className="event-meta"><span><Clock3 />{timeLabel(event.starts_at)}–{timeLabel(event.ends_at)}</span><span><MapPin />{event.location}</span><span><UsersRound />{count}/{event.capacity}名</span></div><p>{event.description}</p></div>
+          <div className="event-main"><h3>{event.title}</h3><div className="event-meta"><span><Clock3 />{timeLabel(event.starts_at)}–{timeLabel(event.ends_at)}</span><span><MapPin />{event.location}</span><span><UsersRound />{count}/{event.capacity}名</span></div><p><LinkifiedText text={event.description} /></p></div>
           <form action={booked ? cancelReservation : reserve}><input type="hidden" name="event_id" value={event.id}/><ConfirmSubmitButton className={booked ? "booked" : "reserve"} disabled={!booked && count >= event.capacity} message={booked ? `「${event.title}」の予約をキャンセルしますか？` : `「${event.title}」に参加予約しますか？`}>{booked ? "予約済み" : count >= event.capacity ? "満員" : "予約する"}</ConfirmSubmitButton></form>
         </article>;
       })}</div>

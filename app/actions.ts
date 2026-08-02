@@ -67,8 +67,13 @@ export async function reserve(fd: FormData) {
   const { count } = await client.from("reservations").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "reserved");
   if (!event || new Date(event.starts_at) <= new Date()) return;
   if ((count ?? 0) >= event.capacity) redirect("/home?error=full");
-  await client.from("reservations").upsert({ user_id: user.id, event_id: eventId, status: "reserved" }, { onConflict: "user_id,event_id" });
+  const { error } = await client.from("reservations").upsert(
+    { user_id: user.id, event_id: eventId, status: "reserved" },
+    { onConflict: "user_id,event_id" },
+  );
+  if (error) redirect("/home?error=reservation");
   revalidatePath("/home");
+  redirect(`/home?reserved=${eventId}`);
 }
 
 export async function cancelReservation(fd: FormData) {
@@ -76,10 +81,11 @@ export async function cancelReservation(fd: FormData) {
   if (!user) redirect("/login");
   const eventId = text(fd, "event_id");
   const { data: event } = await db().from("events").select("starts_at").eq("id", eventId).single();
-  if (event && new Date(event.starts_at).getTime() - Date.now() >= 2 * 3600_000) {
-    await db().from("reservations").update({ status: "cancelled" }).eq("user_id", user.id).eq("event_id", eventId);
-  }
+  if (!event || new Date(event.starts_at).getTime() - Date.now() < 2 * 3600_000) redirect("/home?error=cancel-deadline");
+  const { error } = await db().from("reservations").update({ status: "cancelled" }).eq("user_id", user.id).eq("event_id", eventId);
+  if (error) redirect("/home?error=reservation");
   revalidatePath("/home");
+  redirect("/home?cancelled=1");
 }
 
 async function removeAvatarFiles(userId: string) {

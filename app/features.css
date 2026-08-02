@@ -50,6 +50,8 @@ select:disabled {
 .status-needed { background: #f2ead9; color: #80633a; }
 .instagram-link { color: var(--green); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .instagram-link:hover { color: var(--ink); }
+.description-link { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.description-link:hover { color: inherit; text-decoration-thickness: 2px; }
 .participation-calendar { margin-bottom: 46px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: white; }
 .calendar-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
 .calendar-heading h2 { margin: 6px 0 0; font-size: 26px; }
@@ -59,6 +61,7 @@ select:disabled {
 .calendar-controls button:hover { background: var(--cream); }
 .calendar-controls svg { width: 18px; }
 .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendar-scroll { overflow-x: auto; }
 .calendar-weekdays { border: 1px solid var(--line); border-bottom: 0; border-radius: 10px 10px 0 0; background: #f7f9f6; }
 .calendar-weekdays span { padding: 9px 4px; color: var(--muted); font-size: 11px; font-weight: 700; text-align: center; }
 .calendar-days { overflow: hidden; border-top: 1px solid var(--line); border-left: 1px solid var(--line); border-radius: 0 0 10px 10px; }
@@ -71,6 +74,7 @@ select:disabled {
 .calendar-events a.social-event { background: #f2ead9; color: #80633a; }
 .calendar-events time { display: block; font-size: 9px; opacity: .72; }
 .calendar-events span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calendar-event-location { margin-top: 2px; font-size: 9px; font-weight: 500; opacity: .72; }
 .calendar-empty { margin: 14px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
 .avatar {
   cursor: pointer;
@@ -411,12 +415,14 @@ select:disabled {
   .participation-calendar { margin: 0 0 34px; padding: 16px 10px; }
   .calendar-heading { align-items: flex-start; flex-direction: column; padding: 0 4px; }
   .calendar-controls { width: 100%; justify-content: space-between; }
-  .calendar-day { min-height: 70px; padding: 4px; }
+  .calendar-scroll { padding-bottom: 4px; }
+  .calendar-weekdays, .calendar-days { min-width: 680px; }
+  .calendar-day { min-height: 92px; padding: 5px; }
   .calendar-date { width: 22px; height: 22px; font-size: 11px; }
   .calendar-events a { padding: 4px 3px; }
   .calendar-events time { display: none; }
-  .calendar-events span { font-size: 0; }
-  .calendar-events span::after { content: "予定"; font-size: 9px; }
+  .calendar-events span { font-size: 9px; }
+  .calendar-event-location { font-size: 8px !important; }
   .user-menu .avatar { width: auto; height: 38px; padding: 0 11px; border-radius: 9px; background: var(--ink); }
   .user-menu .avatar-content { display: none; }
   .mobile-menu-label { display: flex; align-items: center; gap: 7px; color: white; font-size: 12px; }
