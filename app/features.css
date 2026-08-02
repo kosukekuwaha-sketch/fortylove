@@ -50,8 +50,19 @@ select:disabled {
 .status-needed { background: #f2ead9; color: #80633a; }
 .instagram-link { color: var(--green); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .instagram-link:hover { color: var(--ink); }
-.description-link { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; overflow-wrap: anywhere; }
-.description-link:hover { color: inherit; text-decoration-thickness: 2px; }
+.event-document-button { display: inline-flex; align-items: center; gap: 6px; width: auto; margin-top: 10px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); font-size: 11px; font-weight: 700; }
+.event-document-button svg { width: 15px; }
+.pdf-dialog { width: min(1100px, calc(100% - 28px)); height: calc(100vh - 28px); max-width: none; max-height: none; padding: 0; border: 0; border-radius: 14px; background: transparent; }
+.pdf-dialog::backdrop { background: rgba(7, 29, 22, .64); backdrop-filter: blur(3px); }
+.pdf-modal { display: grid; grid-template-rows: auto 1fr; width: 100%; height: 100%; overflow: hidden; border-radius: 14px; background: white; box-shadow: 0 24px 70px rgba(7, 29, 22, .32); }
+.pdf-modal header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.pdf-modal header > div:first-child { display: grid; min-width: 0; }
+.pdf-modal header strong, .pdf-modal header small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pdf-modal header small { color: var(--muted); font-size: 10px; }
+.pdf-modal header > div:last-child { display: flex; gap: 6px; }
+.pdf-modal header a, .pdf-modal header button { display: grid; width: 38px; height: 38px; padding: 0; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); }
+.pdf-modal header svg { width: 17px; }
+.pdf-modal iframe { width: 100%; height: 100%; border: 0; background: #e8ebe9; }
 .participation-calendar { margin-bottom: 46px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: white; }
 .calendar-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
 .calendar-heading h2 { margin: 6px 0 0; font-size: 26px; }
@@ -425,6 +436,9 @@ select:disabled {
   font-size: 11px;
 }
 @media (max-width: 800px) {
+  .pdf-dialog { width: 100%; height: 100%; max-height: 100%; border-radius: 0; }
+  .pdf-modal { border-radius: 0; }
+  .pdf-modal header button, .pdf-modal header a { width: 38px !important; }
   .event-edit-modal { padding: 22px 16px; }
   .event-edit-actions { grid-template-columns: 1fr; }
   .participation-calendar { margin: 0 0 34px; padding: 16px 10px; }

@@ -35,6 +35,7 @@ export function AdminEventEdit({ event }: { event: EditableEvent }) {
           <label>終了日時<input type="datetime-local" name="ends_at" defaultValue={event.endsAt} required /></label>
           <label>定員<input type="number" name="capacity" min="1" defaultValue={event.capacity} required /></label>
           <label className="full">説明<textarea name="description" defaultValue={event.description} /></label>
+          <label className="full">関連資料（PDF・15MBまで）<input type="file" name="document" accept="application/pdf,.pdf" /><small>PDFを選ぶと資料を追加または差し替えできます。</small></label>
           <div className="event-edit-actions full"><button className="secondary" type="button" onClick={() => dialogRef.current?.close()}>キャンセル</button><ConfirmSubmitButton className="primary" message={`「${event.title}」の変更内容を保存しますか？`}>変更を保存</ConfirmSubmitButton></div>
         </form>
       </div>

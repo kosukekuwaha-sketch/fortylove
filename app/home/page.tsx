@@ -10,7 +10,7 @@ import { UserMenu } from "@/components/user-menu";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SiteFooter } from "@/components/site-footer";
 import { ParticipationCalendar } from "@/components/participation-calendar";
-import { LinkifiedText } from "@/components/linkified-text";
+import { PdfViewer } from "@/components/pdf-viewer";
 import { tokyoParts, tokyoTimeLabel } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
@@ -24,11 +24,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
   const user = await getSession(); if (!user) redirect("/login");
   const { error, reserved, cancelled } = await searchParams;
   const client = db();
-  const [{ data: events }, { data: reservations }, { data: profile }] = await Promise.all([
+  const [{ data: events }, { data: reservations }, { data: profile }, { data: documents }] = await Promise.all([
     client.from("events").select("*,reservations(id,status)").gte("ends_at", new Date().toISOString()).order("starts_at"),
     client.from("reservations").select("event_id,status").eq("user_id", user.id),
     client.from("users").select("avatar_url").eq("id", user.id).maybeSingle(),
+    client.from("event_documents").select("event_id,file_path,file_name"),
   ]);
+  const documentUrlByEvent = new Map<string, { url: string; fileName: string }>();
+  if (documents?.length) {
+    const { data: signedDocuments } = await client.storage.from("event-documents").createSignedUrls(documents.map((document) => document.file_path), 3600);
+    signedDocuments?.forEach((signed) => {
+      const document = documents.find((item) => item.file_path === signed.path);
+      if (document && signed.signedUrl) documentUrlByEvent.set(document.event_id, { url: signed.signedUrl, fileName: document.file_name });
+    });
+  }
   const status = new Map(reservations?.map(r => [r.event_id, r.status]));
   const participationEvents = (events ?? []).filter((event) => ["reserved", "attended"].includes(status.get(event.id) ?? "")).map((event) => ({ id: event.id, title: event.title, location: event.location, starts_at: event.starts_at, ends_at: event.ends_at, event_type: event.event_type }));
   return <main className="member-shell">
@@ -52,7 +61,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
         const spansMultipleDays = startDate.key !== endDate.key;
         return <article className="event-card" id={`event-${event.id}`} key={event.id}>
           <div className={`event-date${spansMultipleDays ? " date-range" : ""}`}><div><strong>{startDate.label}</strong><span>（{startDate.weekday}）</span></div>{spansMultipleDays && <><b>～</b><div><strong>{endDate.label}</strong><span>（{endDate.weekday}）</span></div></>}</div>
-          <div className="event-main"><h3>{event.title}</h3><div className="event-meta"><span><Clock3 />{timeLabel(event.starts_at)}–{timeLabel(event.ends_at)}</span><span><MapPin />{event.location}</span><span><UsersRound />{count}/{event.capacity}名</span></div><p><LinkifiedText text={event.description} /></p></div>
+          <div className="event-main"><h3>{event.title}</h3><div className="event-meta"><span><Clock3 />{timeLabel(event.starts_at)}–{timeLabel(event.ends_at)}</span><span><MapPin />{event.location}</span><span><UsersRound />{count}/{event.capacity}名</span></div><p>{event.description}</p>{documentUrlByEvent.get(event.id) && <PdfViewer title={event.title} fileName={documentUrlByEvent.get(event.id)!.fileName} url={documentUrlByEvent.get(event.id)!.url} />}</div>
           <form action={booked ? cancelReservation : reserve}><input type="hidden" name="event_id" value={event.id}/><ConfirmSubmitButton className={booked ? "booked" : "reserve"} disabled={!booked && count >= event.capacity} message={booked ? `「${event.title}」の予約をキャンセルしますか？` : `「${event.title}」に参加予約しますか？`}>{booked ? "予約済み" : count >= event.capacity ? "満員" : "予約する"}</ConfirmSubmitButton></form>
         </article>;
       })}</div>

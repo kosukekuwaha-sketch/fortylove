@@ -37,6 +37,15 @@ create table events (
 );
 create index events_starts_at_idx on events (starts_at);
 
+create table event_documents (
+  event_id uuid primary key references events(id) on delete cascade,
+  file_path text not null,
+  file_name text not null,
+  updated_by uuid references users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table reservations (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
@@ -109,6 +118,7 @@ create table faq_categories (
 
 alter table users enable row level security;
 alter table events enable row level security;
+alter table event_documents enable row level security;
 alter table reservations enable row level security;
 alter table membership_applications enable row level security;
 alter table app_settings enable row level security;
