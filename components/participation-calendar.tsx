@@ -56,7 +56,7 @@ export function ParticipationCalendar({ events, focusEventId }: { events: Calend
       const dayEvents = date ? eventMap.get(dateKey(date)) ?? [] : [];
       const isToday = date ? dateKey(date) === dateKey(new Date()) : false;
       return <div className={`calendar-day${!date ? " empty-day" : ""}${isToday ? " today" : ""}`} key={date?.toISOString() ?? `empty-${index}`}>
-        {date && <><span className="calendar-date">{date.getDate()}</span><div className="calendar-events">{dayEvents.map((event) => <a href={`#event-${event.id}`} className={event.event_type === "tennis" ? "tennis-event" : "social-event"} key={event.id} title={`${event.title}｜${event.location}`}><span className="calendar-event-title">{event.title}</span><span className="calendar-event-location">{event.location}</span></a>)}</div></>}
+        {date && <><span className="calendar-date">{date.getDate()}</span><div className="calendar-events">{dayEvents.map((event) => <a href={`#event-${event.id}`} className={event.event_type === "tennis" ? "tennis-event" : "social-event"} key={event.id} title={`${event.title}｜${event.location}`}><time>{new Date(event.starts_at).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}</time><span className="calendar-event-title">{event.title}</span><span className="calendar-event-location">{event.location}</span></a>)}</div></>}
       </div>;
     })}</div></div>
     {!events.length && <p className="calendar-empty">予約すると、ここに参加日程が表示されます。</p>}
