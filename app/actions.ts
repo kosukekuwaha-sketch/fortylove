@@ -93,7 +93,7 @@ async function removeAvatarFiles(userId: string) {
 async function archiveWithdrawal(userId: string, withdrawnBy: string, source: "self" | "admin") {
   const client = db();
   const [{ data: formerUser, error: userError }, { data: reservations, error: reservationError }] = await Promise.all([
-    client.from("users").select("id,name,university,faculty,department,grade,email,line_id,instagram_id,line_display_name,tennis_experience,has_racket").eq("id", userId).single(),
+    client.from("users").select("id,name,university,faculty,department,grade,instagram_id,line_display_name,tennis_experience,has_racket").eq("id", userId).single(),
     client.from("reservations").select("status,created_at,event:events(title,starts_at,location)").eq("user_id", userId),
   ]);
   if (userError || !formerUser || reservationError) return false;
@@ -104,8 +104,6 @@ async function archiveWithdrawal(userId: string, withdrawnBy: string, source: "s
     faculty: formerUser.faculty,
     department: formerUser.department,
     grade: formerUser.grade,
-    email: formerUser.email,
-    line_id: formerUser.line_id,
     instagram_id: formerUser.instagram_id,
     line_display_name: formerUser.line_display_name,
     tennis_experience: formerUser.tennis_experience,

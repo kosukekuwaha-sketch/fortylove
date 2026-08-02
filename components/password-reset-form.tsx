@@ -8,7 +8,6 @@ type PasswordUser = {
   id: string;
   name: string;
   university: string;
-  email: string;
   instagram_id?: string | null;
   role: "member" | "admin" | "super_admin";
 };
@@ -23,7 +22,7 @@ export function PasswordResetForm({ users }: { users: PasswordUser[] }) {
     const keyword = query.trim().toLocaleLowerCase("ja");
     if (!keyword || selected) return [];
     return users.filter((user) =>
-      [user.name, user.university, user.instagram_id, user.email].some((value) =>
+      [user.name, user.university, user.instagram_id].some((value) =>
         value?.toLocaleLowerCase("ja").includes(keyword),
       ),
     ).slice(0, 8);

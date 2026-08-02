@@ -6,5 +6,5 @@ export type EventItem = {
 };
 export type Member = {
   id: string; name: string; university: string; faculty: string; grade: number;
-  email: string; line_id: string | null; role: Role; created_at: string;
+  instagram_id: string | null; line_display_name: string | null; role: Role; created_at: string;
 };

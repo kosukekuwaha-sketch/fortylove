@@ -8,7 +8,6 @@ type RoleCandidate = {
   id: string;
   name: string;
   university: string;
-  email: string;
   instagram_id?: string | null;
 };
 
@@ -21,7 +20,7 @@ export function AdminRoleAssignmentForm({ users }: { users: RoleCandidate[] }) {
     if (!keyword) return [];
     return users.filter((user) =>
       !selected.some((item) => item.id === user.id) &&
-      [user.name, user.university, user.instagram_id, user.email].some((value) =>
+      [user.name, user.university, user.instagram_id].some((value) =>
         value?.toLocaleLowerCase("ja").includes(keyword),
       ),
     ).slice(0, 8);

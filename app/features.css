@@ -250,6 +250,7 @@ select:disabled {
   margin-top: 18px;
 }
 .role-form .primary { width: auto; }
+.direct-membership-form { grid-template-columns: minmax(0, 1fr) auto; }
 .inline-role-form { display: flex; align-items: center; gap: 7px; }
 .inline-role-form select { min-width: 140px; padding: 8px; }
 .inline-role-form .table-action { flex: 0 0 auto; margin-left: 0; }
