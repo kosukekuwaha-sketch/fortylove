@@ -35,8 +35,8 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
             <option value="4">4年</option><option value="5">4年以上</option>
           </select>
         </label>
-        <label>メールアドレス（任意）<input name="email" type="email" defaultValue={user?.email ?? ""} /></label>
-        <label>LINE ID（任意）<input name="line_id" defaultValue={user?.line_id ?? ""} /></label>
+        <label>Instagram ID（任意）<input name="instagram_id" defaultValue={user?.instagram_id ?? ""} placeholder="@を除いて入力" /></label>
+        <label>LINEの表示名（任意）<input name="line_display_name" defaultValue={user?.line_display_name ?? ""} placeholder="LINEで表示されている名前" /></label>
         <label className="full">テニス経験<textarea name="tennis_experience" defaultValue={user?.tennis_experience ?? ""} /></label>
         <label>ラケットの所持状況
           <select name="has_racket" defaultValue={String(user?.has_racket ?? false)}>

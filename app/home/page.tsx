@@ -1,8 +1,8 @@
-import { CalendarDays, Clock3, MapPin, Sparkles, UsersRound } from "lucide-react";
+import { CalendarDays, Clock3, MapPin, UsersRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { applyMembership, cancelReservation, reserve } from "@/app/actions";
+import { cancelReservation, reserve } from "@/app/actions";
 import { Brand } from "@/components/brand";
 import { MemberNav } from "@/components/member-nav";
 import { ClearRegistrationDraft } from "@/components/registration-draft";
@@ -18,15 +18,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
   const user = await getSession(); if (!user) redirect("/login");
   const { error } = await searchParams;
   const client = db();
-  const [{ data: events }, { data: reservations }, { data: application }, { data: settings }, { data: profile }] = await Promise.all([
+  const [{ data: events }, { data: reservations }, { data: profile }] = await Promise.all([
     client.from("events").select("*,reservations(id,status)").gte("ends_at", new Date().toISOString()).order("starts_at"),
     client.from("reservations").select("event_id,status").eq("user_id", user.id),
-    client.from("membership_applications").select("status").eq("user_id", user.id).maybeSingle(),
-    client.from("app_settings").select("recruiting_open").eq("id", 1).maybeSingle(),
     client.from("users").select("avatar_url").eq("id", user.id).maybeSingle(),
   ]);
   const status = new Map(reservations?.map(r => [r.event_id, r.status]));
-  const hasAttended = reservations?.some((reservation) => reservation.status === "attended") ?? false;
   return <main className="member-shell">
     <ClearRegistrationDraft />
     <header className="member-header"><Brand /><UserMenu name={user.name} avatarUrl={profile?.avatar_url} /></header>
@@ -34,8 +31,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>練習やイベントをチェックして、Fortyloveを楽しみましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
       {error === "full" && <div className="alert">申し訳ございません。定員がいっぱいになってしまっています。</div>}
-      {error === "attendance" && <div className="alert">入会申請には、練習またはイベントへの参加実績が1回以上必要です。</div>}
-      <section className="join-card"><div className="join-icon"><Sparkles /></div><div><p className="eyebrow">READY TO JOIN?</p><h2>{application ? application.status === "approved" ? "入会が承認されました！" : application.status === "withdrawn" ? "退会済みです" : "入会申請を受け付けています" : hasAttended ? "入会希望はコチラから！" : "まずは練習・イベントへ参加してみましょう"}</h2><p>{application?.status === "withdrawn" ? "再入会を希望する場合は運営へご連絡ください。" : application ? "運営からの連絡をお待ちください。" : "入会申請は、練習またはイベントに1回以上参加した方が行えます。"}</p></div>{!application && settings?.recruiting_open !== false && <form action={applyMembership}><ConfirmSubmitButton className="dark" disabled={!hasAttended} message="Fortyloveへ入会申請しますか？">入会を申請する</ConfirmSubmitButton></form>}</section>
       <div className="section-head"><div><p className="eyebrow green">UPCOMING</p><h2 id="events">これからのイベント</h2></div><span className="count">{events?.length ?? 0}件</span></div>
       <div className="event-list">{events?.map(event => {
         const booked = status.get(event.id) === "reserved";

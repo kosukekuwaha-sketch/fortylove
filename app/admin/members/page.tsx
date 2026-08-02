@@ -3,6 +3,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SelectAllCheckbox } from "@/components/select-all-checkbox";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { InstagramLink } from "@/components/instagram-link";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function ActiveMembers({ searchParams }: { searchParams: Pr
   const { deleted, error } = await searchParams;
   const { data } = await db()
     .from("membership_applications")
-    .select("id,applied_at,user:users(id,name,university,faculty,department,grade,email,line_id)")
+    .select("id,applied_at,user:users(id,name,university,faculty,department,grade,instagram_id,line_display_name)")
     .eq("status", "approved")
     .order("applied_at", { ascending: false });
 
@@ -29,7 +30,7 @@ export default async function ActiveMembers({ searchParams }: { searchParams: Pr
           <td>{person?.name}</td>
           <td>{person?.university}・{person?.faculty}<small>{person?.department}</small></td>
           <td>{Number(person?.grade) >= 5 ? "4年以上" : `${person?.grade}年`}</td>
-          <td>{person?.email || "未登録"}<small>{person?.line_id && `LINE: ${person.line_id}`}</small></td>
+          <td><InstagramLink id={person?.instagram_id} /><small>{person?.line_display_name && `LINE表示名: ${person.line_display_name}`}</small></td>
           <td>{new Date(member.applied_at).toLocaleDateString("ja-JP")}</td>
           {!isSuperAdmin && <td><form action={deleteMemberAccount}><input type="hidden" name="user_id" value={person?.id} /><ConfirmSubmitButton className="danger table-withdraw" message={`${person?.name}さんのアカウントと予約情報を削除します。元に戻せません。実行しますか？`}>退会・削除</ConfirmSubmitButton></form></td>}
         </tr>;

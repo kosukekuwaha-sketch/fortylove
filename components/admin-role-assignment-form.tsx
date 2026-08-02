@@ -9,6 +9,7 @@ type RoleCandidate = {
   name: string;
   university: string;
   email: string;
+  instagram_id?: string | null;
 };
 
 export function AdminRoleAssignmentForm({ users }: { users: RoleCandidate[] }) {
@@ -20,7 +21,7 @@ export function AdminRoleAssignmentForm({ users }: { users: RoleCandidate[] }) {
     if (!keyword) return [];
     return users.filter((user) =>
       !selected.some((item) => item.id === user.id) &&
-      [user.name, user.university, user.email].some((value) =>
+      [user.name, user.university, user.instagram_id, user.email].some((value) =>
         value?.toLocaleLowerCase("ja").includes(keyword),
       ),
     ).slice(0, 8);
@@ -31,7 +32,7 @@ export function AdminRoleAssignmentForm({ users }: { users: RoleCandidate[] }) {
       <label className="user-search">対象ユーザー
         <input
           value={query}
-          placeholder="名前・大学・メールで検索"
+          placeholder="名前・大学・Instagram IDで検索"
           autoComplete="off"
           onChange={(event) => {
             setQuery(event.target.value);
@@ -44,7 +45,7 @@ export function AdminRoleAssignmentForm({ users }: { users: RoleCandidate[] }) {
             setQuery("");
           }}>
             <strong>{user.name}</strong>
-            <small>{user.university}{user.email ? `・${user.email}` : ""}</small>
+            <small>{user.university}{user.instagram_id ? `・@${user.instagram_id.replace(/^@/, "")}` : ""}</small>
           </button>)}
         </div>}
         {query && results.length === 0 && <small>一致するユーザーがいません</small>}

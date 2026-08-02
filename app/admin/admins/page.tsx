@@ -13,7 +13,7 @@ export default async function Administrators({ searchParams }: { searchParams: P
   const { data: currentUser } = await db().from("users").select("role").eq("id", session.id).single();
   if (currentUser?.role !== "super_admin") redirect("/admin");
   const { role_updated, error } = await searchParams;
-  const { data: users } = await db().from("users").select("id,name,university,faculty,email,line_id,role,created_at").order("name");
+  const { data: users } = await db().from("users").select("id,name,university,faculty,email,line_id,instagram_id,line_display_name,role,created_at").order("name");
   const data = users?.filter(user => user.role === "admin" || user.role === "super_admin");
 
   return <section className="admin-page">
@@ -22,7 +22,7 @@ export default async function Administrators({ searchParams }: { searchParams: P
     {error && <div className="alert">{error === "selection" ? "対象ユーザーを選択してください。" : "権限属性を更新できませんでした。"}</div>}
     <details className="create-panel"><summary>＋ 管理者権限を付与</summary><AdminRoleAssignmentForm users={users?.filter(user => user.role === "member") ?? []} /></details>
     <div className="table-wrap"><table><thead><tr><th>氏名</th><th>権限属性</th><th>所属</th><th>連絡先</th><th>登録日</th></tr></thead><tbody>
-      {data?.map(admin => <tr key={admin.id}><td><span className="table-name"><i>{admin.name[0]}</i>{admin.name}</span></td><td>{admin.id === session.id ? <strong>最高情報責任者（自分）</strong> : <form action={updateUserRole} className="inline-role-form"><input type="hidden" name="user_id" value={admin.id} /><select name="role" defaultValue={admin.role}><option value="member">一般ユーザー</option><option value="admin">管理者</option><option value="super_admin">最高情報責任者</option></select><ConfirmSubmitButton className="table-action" message={`${admin.name}さんの権限を変更しますか？`}>変更</ConfirmSubmitButton></form>}</td><td>{admin.university}・{admin.faculty}</td><td>{admin.email || "未登録"}<small>{admin.line_id && `LINE: ${admin.line_id}`}</small></td><td>{new Date(admin.created_at).toLocaleDateString("ja-JP")}</td></tr>)}
+      {data?.map(admin => <tr key={admin.id}><td><span className="table-name"><i>{admin.name[0]}</i>{admin.name}</span></td><td>{admin.id === session.id ? <strong>最高情報責任者（自分）</strong> : <form action={updateUserRole} className="inline-role-form"><input type="hidden" name="user_id" value={admin.id} /><select name="role" defaultValue={admin.role}><option value="member">一般ユーザー</option><option value="admin">管理者</option><option value="super_admin">最高情報責任者</option></select><ConfirmSubmitButton className="table-action" message={`${admin.name}さんの権限を変更しますか？`}>変更</ConfirmSubmitButton></form>}</td><td>{admin.university}・{admin.faculty}</td><td>{admin.instagram_id ? `Instagram: @${String(admin.instagram_id).replace(/^@/, "")}` : admin.email || "未登録"}<small>{admin.line_display_name ? `LINE表示名: ${admin.line_display_name}` : admin.line_id && `LINE: ${admin.line_id}`}</small></td><td>{new Date(admin.created_at).toLocaleDateString("ja-JP")}</td></tr>)}
     </tbody></table>{!data?.length && <div className="empty"><p>管理者が登録されていません</p></div>}</div>
   </section>;
 }

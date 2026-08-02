@@ -47,8 +47,9 @@ export async function register(fd: FormData) {
   if (sameNames?.some((u) => bcrypt.compareSync(password, u.password_hash))) redirect("/register?error=duplicate");
   const { data, error } = await client.from("users").insert({
     name, password_hash: await bcrypt.hash(password, 12), university: text(fd, "university"),
-    faculty: text(fd, "faculty"), department: text(fd, "department"), grade: Number(text(fd, "grade")), email: text(fd, "email"),
-    line_id: text(fd, "line_id") || null, tennis_experience: text(fd, "tennis_experience"), role: "member",
+    faculty: text(fd, "faculty"), department: text(fd, "department"), grade: Number(text(fd, "grade")),
+    instagram_id: text(fd, "instagram_id") || null, line_display_name: text(fd, "line_display_name") || null,
+    tennis_experience: text(fd, "tennis_experience"), role: "member",
   }).select("id,name,role").single();
   if (error || !data) redirect("/register?error=server");
   await setSession(data);
@@ -81,16 +82,6 @@ export async function cancelReservation(fd: FormData) {
   revalidatePath("/home");
 }
 
-export async function applyMembership() {
-  const user = await getSession();
-  if (!user) redirect("/login");
-  const client = db();
-  const { count } = await client.from("reservations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "attended");
-  if (!count) redirect("/home?error=attendance");
-  await client.from("membership_applications").upsert({ user_id: user.id, status: "pending" }, { onConflict: "user_id", ignoreDuplicates: true });
-  revalidatePath("/home");
-}
-
 async function removeAvatarFiles(userId: string) {
   const client = db();
   const { data: files } = await client.storage.from("avatars").list(userId);
@@ -102,7 +93,7 @@ async function removeAvatarFiles(userId: string) {
 async function archiveWithdrawal(userId: string, withdrawnBy: string, source: "self" | "admin") {
   const client = db();
   const [{ data: formerUser, error: userError }, { data: reservations, error: reservationError }] = await Promise.all([
-    client.from("users").select("id,name,university,faculty,department,grade,email,line_id,tennis_experience,has_racket").eq("id", userId).single(),
+    client.from("users").select("id,name,university,faculty,department,grade,email,line_id,instagram_id,line_display_name,tennis_experience,has_racket").eq("id", userId).single(),
     client.from("reservations").select("status,created_at,event:events(title,starts_at,location)").eq("user_id", userId),
   ]);
   if (userError || !formerUser || reservationError) return false;
@@ -115,6 +106,8 @@ async function archiveWithdrawal(userId: string, withdrawnBy: string, source: "s
     grade: formerUser.grade,
     email: formerUser.email,
     line_id: formerUser.line_id,
+    instagram_id: formerUser.instagram_id,
+    line_display_name: formerUser.line_display_name,
     tennis_experience: formerUser.tennis_experience,
     has_racket: formerUser.has_racket,
     reservation_history: reservations ?? [],
@@ -186,8 +179,8 @@ export async function updateProfile(fd: FormData) {
     faculty: text(fd, "faculty"),
     department: text(fd, "department"),
     grade: Number(text(fd, "grade")),
-    email: text(fd, "email"),
-    line_id: text(fd, "line_id") || null,
+    instagram_id: text(fd, "instagram_id") || null,
+    line_display_name: text(fd, "line_display_name") || null,
     tennis_experience: text(fd, "tennis_experience"),
     has_racket: text(fd, "has_racket") === "true",
     ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
@@ -373,12 +366,17 @@ export async function deleteFaq(fd: FormData) {
   redirect("/admin/faqs?deleted=1");
 }
 
-export async function updateApplication(fd: FormData) {
+export async function registerJoinedMember(fd: FormData) {
   const user = await requireAdmin();
-  const id = text(fd, "id");
-  await db().from("membership_applications").update({ status: text(fd, "status") }).eq("id", id);
-  await db().from("audit_logs").insert({ actor_id: user.id, action: "application.update", target_type: "application", target_id: id });
-  revalidatePath("/admin/applications");
+  const userId = text(fd, "user_id");
+  const client = db();
+  const { error } = await client.from("membership_applications").upsert(
+    { user_id: userId, status: "approved", applied_at: new Date().toISOString() },
+    { onConflict: "user_id" },
+  );
+  if (error) redirect("/admin?error=membership-register");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: "membership.register.direct", target_type: "user", target_id: userId });
+  redirect("/admin?membership_registered=1");
 }
 
 export async function deleteMemberAccount(fd: FormData) {
