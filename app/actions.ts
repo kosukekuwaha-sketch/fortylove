@@ -411,9 +411,9 @@ export async function registerJoinedMember(fd: FormData) {
     { user_id: userId, status: "approved", applied_at: new Date().toISOString() },
     { onConflict: "user_id" },
   );
-  if (error) redirect("/admin?error=membership-register");
+  if (error) redirect("/admin/members?error=membership-register");
   await client.from("audit_logs").insert({ actor_id: user.id, action: "membership.register.direct", target_type: "user", target_id: userId });
-  redirect("/admin?membership_registered=1");
+  redirect("/admin/members?membership_registered=1");
 }
 
 export async function deleteMemberAccount(fd: FormData) {

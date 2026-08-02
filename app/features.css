@@ -285,7 +285,13 @@ select:disabled {
   margin-top: 18px;
 }
 .role-form .primary { width: auto; }
-.direct-membership-form { grid-template-columns: minmax(0, 1fr) auto; }
+.direct-membership-form { display: grid; gap: 16px; margin-top: 18px; }
+.direct-membership-form > .primary { width: fit-content; }
+.panel-description { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+.membership-candidate-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--line); }
+.membership-candidate-summary > div { display: grid; align-content: start; gap: 5px; min-width: 0; padding: 13px; background: #fafbf9; }
+.membership-candidate-summary small { color: var(--muted); font-size: 10px; font-weight: 700; }
+.membership-candidate-summary strong { overflow-wrap: anywhere; font-size: 12px; line-height: 1.55; }
 .restore-account-form { display: flex; gap: 6px; margin-top: 8px; }
 .restore-account-form input { min-width: 120px; padding: 8px; }
 .inline-role-form { display: flex; align-items: center; gap: 7px; }
@@ -420,9 +426,10 @@ select:disabled {
   .calendar-day { min-height: 92px; padding: 5px; }
   .calendar-date { width: 22px; height: 22px; font-size: 11px; }
   .calendar-events a { padding: 4px 3px; }
-  .calendar-events time { display: none; }
   .calendar-events span { font-size: 9px; }
   .calendar-event-location { font-size: 8px !important; }
+  .membership-candidate-summary { grid-template-columns: 1fr; }
+  .direct-membership-form > .primary { width: 100%; }
   .user-menu .avatar { width: auto; height: 38px; padding: 0 11px; border-radius: 9px; background: var(--ink); }
   .user-menu .avatar-content { display: none; }
   .mobile-menu-label { display: flex; align-items: center; gap: 7px; color: white; font-size: 12px; }
