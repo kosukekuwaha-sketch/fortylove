@@ -393,6 +393,57 @@ export async function deleteMemberAccount(fd: FormData) {
   redirect("/admin/members?deleted=1");
 }
 
+export async function deleteReceptionAccount(fd: FormData) {
+  const user = await requireAdmin();
+  if (user.role !== "super_admin") redirect("/admin");
+  const userId = text(fd, "user_id");
+  const client = db();
+  if (!await archiveWithdrawal(userId, user.id, "admin")) redirect("/admin?error=delete");
+  await removeAvatarFiles(userId);
+  const { error } = await client.from("users").delete().eq("id", userId).eq("role", "member");
+  if (error) redirect("/admin?error=delete");
+  await client.from("audit_logs").insert({
+    actor_id: user.id,
+    action: "account.delete.reception",
+    target_type: "user",
+    target_id: userId,
+  });
+  redirect("/admin?deleted=1");
+}
+
+export async function restoreWithdrawalAccount(fd: FormData) {
+  const user = await requireAdmin();
+  if (user.role !== "super_admin") redirect("/admin");
+  const withdrawalId = text(fd, "withdrawal_id");
+  const temporaryPassword = text(fd, "temporary_password");
+  if (temporaryPassword.length < 4) redirect("/admin/withdrawals?error=password");
+  const client = db();
+  const { data: archived, error: archiveError } = await client.from("membership_withdrawals").select("*").eq("id", withdrawalId).single();
+  if (archiveError || !archived) redirect("/admin/withdrawals?error=restore");
+  const { error: restoreError } = await client.from("users").insert({
+    id: archived.former_user_id,
+    name: archived.name,
+    password_hash: await bcrypt.hash(temporaryPassword, 12),
+    university: archived.university,
+    faculty: archived.faculty,
+    department: archived.department,
+    grade: archived.grade ?? 1,
+    instagram_id: archived.instagram_id,
+    line_display_name: archived.line_display_name,
+    tennis_experience: archived.tennis_experience,
+    has_racket: archived.has_racket,
+    role: "member",
+  });
+  if (restoreError) redirect("/admin/withdrawals?error=restore");
+  const { error: deleteError } = await client.from("membership_withdrawals").delete().eq("id", withdrawalId);
+  if (deleteError) {
+    await client.from("users").delete().eq("id", archived.former_user_id);
+    redirect("/admin/withdrawals?error=restore");
+  }
+  await client.from("audit_logs").insert({ actor_id: user.id, action: "account.restore.withdrawal", target_type: "user", target_id: archived.former_user_id });
+  redirect("/admin/withdrawals?restored=1");
+}
+
 export async function deleteMemberAccounts(fd: FormData) {
   const user = await requireAdmin();
   if (user.role !== "super_admin") redirect("/admin");
