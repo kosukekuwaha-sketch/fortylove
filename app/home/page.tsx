@@ -9,6 +9,7 @@ import { ClearRegistrationDraft } from "@/components/registration-draft";
 import { UserMenu } from "@/components/user-menu";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SiteFooter } from "@/components/site-footer";
+import { ParticipationCalendar } from "@/components/participation-calendar";
 
 export const dynamic = "force-dynamic";
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { month: "short", day: "numeric", weekday: "short" }).format(new Date(iso));
@@ -24,6 +25,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     client.from("users").select("avatar_url").eq("id", user.id).maybeSingle(),
   ]);
   const status = new Map(reservations?.map(r => [r.event_id, r.status]));
+  const participationEvents = (events ?? []).filter((event) => ["reserved", "attended"].includes(status.get(event.id) ?? "")).map((event) => ({ id: event.id, title: event.title, starts_at: event.starts_at, event_type: event.event_type }));
   return <main className="member-shell">
     <ClearRegistrationDraft />
     <header className="member-header"><Brand /><UserMenu name={user.name} avatarUrl={profile?.avatar_url} /></header>
@@ -31,6 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>練習やイベントをチェックして、Fortyloveを楽しみましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
       {error === "full" && <div className="alert">申し訳ございません。定員がいっぱいになってしまっています。</div>}
+      <ParticipationCalendar events={participationEvents} />
       <div className="section-head"><div><p className="eyebrow green">UPCOMING</p><h2 id="events">これからのイベント</h2></div><span className="count">{events?.length ?? 0}件</span></div>
       <div className="event-list">{events?.map(event => {
         const booked = status.get(event.id) === "reserved";
