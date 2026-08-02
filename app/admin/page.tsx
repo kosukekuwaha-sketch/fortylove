@@ -5,6 +5,7 @@ import { PasswordResetForm } from "@/components/password-reset-form";
 import { InstagramLink } from "@/components/instagram-link";
 import { deleteReceptionAccount } from "@/app/actions";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { visibleDepartment } from "@/lib/profile";
 export const dynamic = "force-dynamic";
 export default async function Members({ searchParams }: { searchParams: Promise<{ q?: string; university?: string; page?: string; error?: string; password_reset?: string; deleted?: string }> }) {
   const { q = "", university = "", page = "1", error, password_reset, deleted } = await searchParams; const size = 20; const from = (Number(page) - 1) * size;
@@ -16,6 +17,7 @@ export default async function Members({ searchParams }: { searchParams: Promise<
   let query = db().from("users").select("*", { count: "exact" }).eq("role", "member").range(from, from + size - 1).order("created_at", { ascending: false });
   if (q) query = query.ilike("name", `%${q}%`); if (university) query = query.eq("university", university);
   const { data, count } = await query;
+  data?.forEach((member) => { member.department = visibleDepartment(member.department); });
   const { data: passwordUsers } = isSuperAdmin ? await db().from("users").select("id,name,university,instagram_id,role").order("name") : { data: null };
   return <section className="admin-page"><div className="page-title"><div><p className="eyebrow green">MEMBERS</p><h1>新入生名簿</h1><p>登録者の情報を検索・確認できます。</p></div><span className="stat"><strong>{count ?? 0}</strong>名 登録中</span></div>
     {password_reset && <div className="success-message">仮パスワードへ再設定しました。</div>}

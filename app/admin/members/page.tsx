@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { InstagramLink } from "@/components/instagram-link";
 import { DirectMembershipForm } from "@/components/direct-membership-form";
+import { visibleDepartment } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,10 @@ export default async function ActiveMembers({ searchParams }: { searchParams: Pr
     .select("id,applied_at,user:users(id,name,university,faculty,department,grade,instagram_id,line_display_name)")
     .eq("status", "approved")
     .order("applied_at", { ascending: false });
+  data?.forEach((member) => {
+    const person = Array.isArray(member.user) ? member.user[0] : member.user;
+    if (person) person.department = visibleDepartment(person.department);
+  });
   const joinedIds = new Set((data ?? []).map((member) => {
     const person = Array.isArray(member.user) ? member.user[0] : member.user;
     return person?.id;
@@ -28,6 +33,7 @@ export default async function ActiveMembers({ searchParams }: { searchParams: Pr
     .select("id,name,university,faculty,department,grade,instagram_id,line_display_name,tennis_experience,has_racket")
     .eq("role", "member")
     .order("name");
+  receptionUsers?.forEach((person) => { person.department = visibleDepartment(person.department); });
   const membershipCandidates = (receptionUsers ?? []).filter((candidate) => !joinedIds.has(candidate.id));
 
   const table = <div className="table-wrap">

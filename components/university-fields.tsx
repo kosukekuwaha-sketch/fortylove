@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { REGISTRATION_DRAFT_KEY } from "./registration-draft";
+import { visibleDepartment } from "@/lib/profile";
 
 const schools: Record<string, Record<string, string[]>> = {
   "早稲田大学": {
     "政治経済学部": ["政治学科", "経済学科", "国際政治経済学科"],
-    "法学部": ["学科なし（学部一括）"],
-    "文化構想学部": ["学科なし（学部一括）"],
-    "文学部": ["学科なし（学部一括）"],
+    "法学部": [],
+    "文化構想学部": [],
+    "文学部": [],
     "教育学部": ["教育学科", "国語国文学科", "英語英文学科", "社会科", "理学科", "数学科", "複合文化学科"],
-    "商学部": ["学科なし（学部一括）"],
+    "商学部": [],
     "基幹理工学部": ["学系Ⅰ（学系別入試）", "学系Ⅱ（学系別入試）", "学系Ⅲ（学系別入試）", "学系Ⅳ（学系別入試）", "数学科", "応用数理学科", "機械科学・航空宇宙学科", "電子物理システム学科", "情報理工学科", "情報通信学科", "表現工学科"],
     "創造理工学部": ["建築学科", "総合機械工学科", "経営システム工学科", "社会環境工学科", "環境資源工学科"],
     "先進理工学部": ["物理学科", "応用物理学科", "化学・生命化学科", "応用化学科", "生命医科学科", "電気・情報生命工学科"],
@@ -46,7 +47,7 @@ export function UniversityFields({
 }) {
   const [university, setUniversity] = useState(initialUniversity);
   const [faculty, setFaculty] = useState(initialFaculty);
-  const [department, setDepartment] = useState(initialDepartment);
+  const [department, setDepartment] = useState(visibleDepartment(initialDepartment));
 
   useEffect(() => {
     if (!restoreDraft) return;
@@ -55,13 +56,11 @@ export function UniversityFields({
     const values = JSON.parse(saved) as Record<string, string>;
     setUniversity(values.university_choice ?? "");
     setFaculty(values.faculty_choice ?? "");
-    setDepartment(values.department_choice ?? "");
+    setDepartment(visibleDepartment(values.department_choice));
   }, [restoreDraft]);
 
   const departments = university && faculty ? schools[university][faculty] : [];
-  const hasDepartmentChoice = departments.length > 0 && !(
-    departments.length === 1 && departments[0].startsWith("学科なし")
-  );
+  const hasDepartmentChoice = departments.length > 0;
 
   return <>
     <label>大学
@@ -79,11 +78,7 @@ export function UniversityFields({
         const nextFaculty = event.target.value;
         const nextDepartments = schools[university][nextFaculty] ?? [];
         setFaculty(nextFaculty);
-        setDepartment(
-          nextDepartments.length === 1 && nextDepartments[0].startsWith("学科なし")
-            ? nextDepartments[0]
-            : "",
-        );
+        setDepartment("");
       }} required>
         <option value="">選択してください</option>
         {Object.keys(schools[university]).map((name) => <option key={name}>{name}</option>)}
@@ -97,6 +92,6 @@ export function UniversityFields({
         {departments.map((name) => <option key={name}>{name}</option>)}
       </select>
     </label>}
-    <input type="hidden" name="department" value={department} />
+    <input type="hidden" name="department" value={hasDepartmentChoice ? department : ""} />
   </>;
 }

@@ -4,6 +4,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SelectAllCheckbox } from "@/components/select-all-checkbox";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { visibleDepartment } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default async function Withdrawals({ searchParams }: { searchParams: Prom
   if (currentUser?.role !== "super_admin") redirect("/admin");
   const { deleted, restored, error } = await searchParams;
   const { data } = await db().from("membership_withdrawals").select("*").order("withdrawn_at", { ascending: false });
+  data?.forEach((person) => { person.department = visibleDepartment(person.department); });
 
   return <section className="admin-page">
     <div className="page-title"><div><p className="eyebrow green">WITHDRAWAL ARCHIVE</p><h1>退会者台帳</h1><p>この情報は最高情報責任者のみ閲覧できます。</p></div><span className="stat"><strong>{data?.length ?? 0}</strong>名</span></div>

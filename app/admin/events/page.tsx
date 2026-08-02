@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { AdminEventEdit } from "@/components/admin-event-edit";
 import { toTokyoDatetimeLocal, tokyoDateKey, tokyoParts, tokyoTimeLabel } from "@/lib/datetime";
+import { visibleDepartment } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,7 @@ export default async function Events({ searchParams }: { searchParams: Promise<{
           return <li key={reservation.id}>
             <div className="attendance-person"><strong>{person?.name ?? "削除済みユーザー"}</strong><span>{reservation.status === "attended" ? "参加済み" : "予約中"}</span></div>
             <div className="attendance-attributes">
-              <div><small>所属</small><span>{person?.university}・{person?.faculty}{person?.department ? `・${person.department}` : ""}</span></div>
+              <div><small>所属</small><span>{person?.university}・{person?.faculty}{visibleDepartment(person?.department) ? `・${visibleDepartment(person?.department)}` : ""}</span></div>
               <div><small>学年</small><span>{Number(person?.grade) >= 5 ? "4年以上" : `${person?.grade ?? "未登録"}年`}</span></div>
               <div><small>テニス経験</small><span>{person?.tennis_experience || "未記入"}</span></div>
               <div><small>LINE表示名</small><span>{person?.line_display_name || "未登録"}</span></div>
