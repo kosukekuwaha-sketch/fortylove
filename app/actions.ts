@@ -274,6 +274,39 @@ export async function createEvent(fd: FormData) {
   revalidatePath("/admin/events");
 }
 
+export async function updateEvent(fd: FormData) {
+  const user = await requireAdmin();
+  const eventId = text(fd, "event_id");
+  const startsAt = text(fd, "starts_at");
+  const endsAt = text(fd, "ends_at");
+  const capacity = Number(text(fd, "capacity"));
+  if (!eventId || !startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt) || capacity < 1) {
+    redirect("/admin/events?error=update");
+  }
+  const client = db();
+  const { count } = await client.from("reservations").select("*", { count: "exact", head: true })
+    .eq("event_id", eventId).eq("status", "reserved");
+  if (capacity < (count ?? 0)) redirect("/admin/events?error=capacity");
+  const { error } = await client.from("events").update({
+    title: text(fd, "title"),
+    starts_at: startsAt,
+    ends_at: endsAt,
+    location: text(fd, "location"),
+    capacity,
+    description: text(fd, "description"),
+    event_type: text(fd, "event_type") || "tennis",
+  }).eq("id", eventId);
+  if (error) redirect("/admin/events?error=update");
+  await client.from("audit_logs").insert({
+    actor_id: user.id,
+    action: "event.update",
+    target_type: "event",
+    target_id: eventId,
+  });
+  revalidatePath("/home");
+  redirect("/admin/events?updated=1");
+}
+
 export async function deleteEvent(fd: FormData) {
   const user = await requireAdmin();
   const eventId = text(fd, "event_id");
