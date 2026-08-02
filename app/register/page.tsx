@@ -7,7 +7,7 @@ import { register } from "@/app/actions";
 export default async function Register({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
   return <main className="form-page"><header><Brand /><Link href="/login">ログインへ</Link></header>
-    <section className="form-card"><p className="eyebrow green">JOIN Fortylove</p><h1>新歓受付登録</h1><p className="muted">基本情報を入力すると、すぐに練習を予約できます。</p>
+    <section className="form-card"><p className="eyebrow green">EXPERIENCE Fortylove</p><h1>新歓受付登録</h1><p className="muted">基本情報を入力すると、すぐに練習を予約できます。</p>
       {error && <div className="alert">{error === "duplicate" ? "同じ名前とパスワードの登録があります。別のパスワードを設定してください。" : error === "password" ? "パスワードは4文字以上で設定してください。" : "登録できませんでした。入力内容をご確認ください。"}</div>}
       <form id="registration-form" action={register} className="grid-form">
         <RegistrationDraftKeeper />
