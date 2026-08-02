@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { clearSession, getSession, setSession } from "@/lib/auth";
+import { tokyoLocalToIso } from "@/lib/datetime";
 
 const text = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 
@@ -271,11 +272,15 @@ export async function resetUserPassword(fd: FormData) {
 export async function createEvent(fd: FormData) {
   const user = await requireAdmin();
   const client = db();
-  const { data } = await client.from("events").insert({
-    title: text(fd, "title"), starts_at: text(fd, "starts_at"), ends_at: text(fd, "ends_at"),
+  const startsAt = tokyoLocalToIso(text(fd, "starts_at"));
+  const endsAt = tokyoLocalToIso(text(fd, "ends_at"));
+  if (!startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) redirect("/admin/events?error=create");
+  const { data, error } = await client.from("events").insert({
+    title: text(fd, "title"), starts_at: startsAt, ends_at: endsAt,
     location: text(fd, "location"), capacity: Number(text(fd, "capacity")), description: text(fd, "description"),
     event_type: text(fd, "event_type") || "tennis",
   }).select("id").single();
+  if (error) redirect("/admin/events?error=create");
   await client.from("audit_logs").insert({ actor_id: user.id, action: "event.create", target_type: "event", target_id: data?.id });
   revalidatePath("/admin/events");
 }
@@ -283,8 +288,8 @@ export async function createEvent(fd: FormData) {
 export async function updateEvent(fd: FormData) {
   const user = await requireAdmin();
   const eventId = text(fd, "event_id");
-  const startsAt = text(fd, "starts_at");
-  const endsAt = text(fd, "ends_at");
+  const startsAt = tokyoLocalToIso(text(fd, "starts_at"));
+  const endsAt = tokyoLocalToIso(text(fd, "ends_at"));
   const capacity = Number(text(fd, "capacity"));
   if (!eventId || !startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt) || capacity < 1) {
     redirect("/admin/events?error=update");

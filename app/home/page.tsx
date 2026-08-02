@@ -11,14 +11,14 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SiteFooter } from "@/components/site-footer";
 import { ParticipationCalendar } from "@/components/participation-calendar";
 import { LinkifiedText } from "@/components/linkified-text";
+import { tokyoParts, tokyoTimeLabel } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 const dateParts = (iso: string) => {
-  const parts = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric", weekday: "short" }).formatToParts(new Date(iso));
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const value = tokyoParts(iso);
   return { key: `${value.year}-${value.month}-${value.day}`, label: `${value.month}月${value.day}日`, weekday: value.weekday };
 };
-const timeLabel = (iso: string) => new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+const timeLabel = tokyoTimeLabel;
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ error?: string; reserved?: string; cancelled?: string }> }) {
   const user = await getSession(); if (!user) redirect("/login");
@@ -30,7 +30,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     client.from("users").select("avatar_url").eq("id", user.id).maybeSingle(),
   ]);
   const status = new Map(reservations?.map(r => [r.event_id, r.status]));
-  const participationEvents = (events ?? []).filter((event) => ["reserved", "attended"].includes(status.get(event.id) ?? "")).map((event) => ({ id: event.id, title: event.title, location: event.location, starts_at: event.starts_at, event_type: event.event_type }));
+  const participationEvents = (events ?? []).filter((event) => ["reserved", "attended"].includes(status.get(event.id) ?? "")).map((event) => ({ id: event.id, title: event.title, location: event.location, starts_at: event.starts_at, ends_at: event.ends_at, event_type: event.event_type }));
   return <main className="member-shell">
     <ClearRegistrationDraft />
     <header className="member-header"><Brand /><UserMenu name={user.name} avatarUrl={profile?.avatar_url} /></header>

@@ -190,10 +190,16 @@ select:disabled {
 .event-edit-heading > button { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); border-radius: 9px; background: white; color: var(--muted); }
 .event-edit-heading svg { width: 18px; }
 .event-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.attendance-list { display: grid; gap: 8px; padding: 0; list-style: none; }
-.attendance-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid #eef0ed; }
-.attendance-list form { display: flex; align-items: center; gap: 7px; }
-.attendance-list select { min-width: 115px; padding: 8px; }
+.attendance-list { display: grid; gap: 10px; padding: 0; list-style: none; }
+.attendance-list li { display: grid; gap: 12px; padding: 15px; border: 1px solid #e7ebe8; border-radius: 10px; background: #fafbf9; }
+.attendance-person { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.attendance-person > span { padding: 4px 8px; border-radius: 999px; background: #e4ece7; color: var(--green); font-size: 10px; font-weight: 700; }
+.attendance-attributes { display: grid; grid-template-columns: 1.8fr .6fr 1.3fr 1fr; gap: 12px; }
+.attendance-attributes > div { display: grid; align-content: start; gap: 4px; min-width: 0; }
+.attendance-attributes small { color: var(--muted); font-size: 9px; font-weight: 700; }
+.attendance-attributes span { overflow-wrap: anywhere; font-size: 11px; line-height: 1.5; }
+.attendance-attributes .status-owned, .attendance-attributes .status-needed { width: fit-content; }
+.attendance-empty { padding: 16px 0 2px; color: var(--muted); }
 .admin-event { min-width: 0; }
 .admin-event > div,
 .admin-event details,
@@ -464,9 +470,7 @@ select:disabled {
   .admin-event { grid-template-columns: minmax(0, 1fr); padding: 16px; }
   .admin-event-stats { justify-content: flex-start; flex-wrap: wrap; }
   .admin-event details { grid-column: 1; }
-  .attendance-list li { align-items: stretch; flex-direction: column; }
-  .attendance-list form { width: 100%; }
-  .attendance-list select { flex: 1; min-width: 0; }
+  .attendance-attributes { grid-template-columns: 1fr 1fr; }
   .role-form .primary { width: 100%; }
   .bulk-toolbar { align-items: stretch; flex-direction: column; }
   .bulk-toolbar .danger { width: 100%; }
