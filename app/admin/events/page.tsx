@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createEvent, deleteEvent } from "@/app/actions";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
@@ -30,11 +31,15 @@ type Reservation = {
   } | null;
 };
 
-export default async function Events({ searchParams }: { searchParams: Promise<{ deleted?: string; updated?: string; attendance_updated?: string; error?: string }> }) {
-  const { deleted, updated, attendance_updated, error } = await searchParams;
-  const { data } = await db().from("events")
-    .select("*,reservations(id,status,user:users(name,university,faculty,department,grade,line_display_name,tennis_experience,has_racket))")
-    .order("starts_at", { ascending: true });
+export default async function Events({ searchParams }: { searchParams: Promise<{ view?: string; deleted?: string; updated?: string; attendance_updated?: string; error?: string }> }) {
+  const { view: requestedView, deleted, updated, attendance_updated, error } = await searchParams;
+  const view = requestedView === "past" ? "past" : "upcoming";
+  const now = new Date().toISOString();
+  const query = db().from("events")
+    .select("*,reservations(id,status,user:users(name,university,faculty,department,grade,line_display_name,tennis_experience,has_racket))");
+  const { data } = view === "past"
+    ? await query.lt("ends_at", now).order("starts_at", { ascending: false })
+    : await query.gte("ends_at", now).order("starts_at", { ascending: true });
 
   return <section className="admin-page">
     <div className="page-title"><div><p className="eyebrow green">EVENTS</p><h1>イベント管理</h1><p>練習・イベントの作成と参加者確認ができます。</p></div></div>
@@ -44,6 +49,11 @@ export default async function Events({ searchParams }: { searchParams: Promise<{
     {error && <div className="alert">{error === "capacity" ? "定員は現在の予約人数より少なくできません。" : error === "update" || error === "create" ? "イベントを保存できませんでした。日時や入力内容をご確認ください。" : error === "document-type" ? "PDF形式のファイルを選択してください。" : error === "document-size" ? "PDFは15MB以下にしてください。" : error?.startsWith("document-") ? "PDFを保存できませんでした。SupabaseのPDF用SQLを実行してから、もう一度お試しください。" : "イベントを削除できませんでした。もう一度お試しください。"}</div>}
 
     <details className="create-panel"><summary>＋ 新しい予定を作成</summary><form action={createEvent} className="grid-form"><label className="full">種別<select name="event_type" defaultValue="tennis"><option value="tennis">テニス</option><option value="event">イベント</option></select></label><label>タイトル<input name="title" required /></label><label>場所<input name="location" required /></label><label>開始日時<input type="datetime-local" name="starts_at" required /></label><label>終了日時<input type="datetime-local" name="ends_at" required /></label><label>定員<input type="number" name="capacity" min="1" required /></label><label className="full">説明<textarea name="description" /></label><label className="full">関連資料（PDF・任意・15MBまで）<input type="file" name="document" accept="application/pdf,.pdf" /><small>アップロードすると一般ユーザーがイベント画面内で閲覧できます。</small></label><button className="primary full">予定を作成</button></form></details>
+
+    <nav className="event-status-tabs" aria-label="イベントの表示切り替え">
+      <Link className={view === "upcoming" ? "active" : ""} href="/admin/events?view=upcoming">開催予定</Link>
+      <Link className={view === "past" ? "active" : ""} href="/admin/events?view=past">終了済み</Link>
+    </nav>
 
     <div className="admin-cards">{data?.map((event) => {
       const active = (event.reservations as Reservation[]).filter((reservation) => reservation.status !== "cancelled");
@@ -65,6 +75,6 @@ export default async function Events({ searchParams }: { searchParams: Promise<{
           </li>;
         })}</ul> : <p className="attendance-empty">現在、参加予約者はいません。</p>}</details>
       </article>;
-    })}</div>
+    })}{!data?.length && <p className="event-status-empty">{view === "past" ? "終了済みのイベントはありません。" : "開催予定のイベントはありません。"}</p>}</div>
   </section>;
 }

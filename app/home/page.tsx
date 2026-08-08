@@ -16,7 +16,7 @@ import { tokyoParts, tokyoTimeLabel } from "@/lib/datetime";
 export const dynamic = "force-dynamic";
 const dateParts = (iso: string) => {
   const value = tokyoParts(iso);
-  return { key: `${value.year}-${value.month}-${value.day}`, label: `${value.month}月${value.day}日`, weekday: value.weekday };
+  return { key: `${value.year}-${value.month}-${value.day}`, month: value.month, day: value.day, weekday: value.weekday };
 };
 const timeLabel = tokyoTimeLabel;
 
@@ -60,7 +60,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
         const endDate = dateParts(event.ends_at);
         const spansMultipleDays = startDate.key !== endDate.key;
         return <article className="event-card" id={`event-${event.id}`} key={event.id}>
-          <div className={`event-date${spansMultipleDays ? " date-range" : ""}`}><div><strong>{startDate.label}</strong><span>（{startDate.weekday}）</span></div>{spansMultipleDays && <><b>～</b><div><strong>{endDate.label}</strong><span>（{endDate.weekday}）</span></div></>}</div>
+          <div className={`event-date${spansMultipleDays ? " date-range" : ""}`}><div><strong><span>{startDate.month}月</span><span>{startDate.day}日</span></strong><span>（{startDate.weekday}）</span></div>{spansMultipleDays && <><b>～</b><div><strong><span>{endDate.month}月</span><span>{endDate.day}日</span></strong><span>（{endDate.weekday}）</span></div></>}</div>
           <div className="event-main"><h3>{event.title}</h3><div className="event-meta"><span><Clock3 />{timeLabel(event.starts_at)}–{timeLabel(event.ends_at)}</span><span><MapPin />{event.location}</span><span><UsersRound />{count}/{event.capacity}名</span></div><p>{event.description}</p>{documentUrlByEvent.get(event.id) && <PdfViewer title={event.title} fileName={documentUrlByEvent.get(event.id)!.fileName} url={documentUrlByEvent.get(event.id)!.url} />}</div>
           <form action={booked ? cancelReservation : reserve}><input type="hidden" name="event_id" value={event.id}/><ConfirmSubmitButton className={booked ? "booked" : "reserve"} disabled={!booked && count >= event.capacity} message={booked ? `「${event.title}」の予約をキャンセルしますか？` : `「${event.title}」に参加予約しますか？`}>{booked ? "予約済み" : count >= event.capacity ? "満員" : "予約する"}</ConfirmSubmitButton></form>
         </article>;
