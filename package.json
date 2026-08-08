@@ -13,8 +13,10 @@
     "bcryptjs": "^3.0.2",
     "lucide-react": "^0.468.0",
     "next": "^15.4.4",
+    "pdfjs-dist": "5.4.296",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-pdf": "^10.4.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
