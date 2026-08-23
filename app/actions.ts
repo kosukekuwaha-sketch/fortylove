@@ -5,53 +5,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { clearSession, getSession, setSession } from "@/lib/auth";
-import { tokyoLocalToIso } from "@/lib/datetime";
+import { isValidNewPassword } from "@/lib/password-policy";
+import { requireAdmin } from "@/lib/server/action-context";
 
 const text = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
-const EVENT_DOCUMENT_BUCKET = "event-documents";
-const MAX_EVENT_PDF_SIZE = 15 * 1024 * 1024;
-
-async function replaceEventDocument(eventId: string, actorId: string, file: File) {
-  if (file.type !== "application/pdf" || !file.name.toLowerCase().endsWith(".pdf")) return "type";
-  if (file.size > MAX_EVENT_PDF_SIZE) return "size";
-  const client = db();
-  const { data: bucket } = await client.storage.getBucket(EVENT_DOCUMENT_BUCKET);
-  if (!bucket) {
-    const { error } = await client.storage.createBucket(EVENT_DOCUMENT_BUCKET, {
-      public: false,
-      fileSizeLimit: MAX_EVENT_PDF_SIZE,
-      allowedMimeTypes: ["application/pdf"],
-    });
-    if (error) return "upload";
-  }
-  const { data: existing } = await client.from("event_documents").select("file_path").eq("event_id", eventId).maybeSingle();
-  const path = `${eventId}/${crypto.randomUUID()}.pdf`;
-  const { error: uploadError } = await client.storage.from(EVENT_DOCUMENT_BUCKET).upload(path, file, { contentType: "application/pdf" });
-  if (uploadError) return "upload";
-  const { error: databaseError } = await client.from("event_documents").upsert({
-    event_id: eventId,
-    file_path: path,
-    file_name: file.name,
-    updated_by: actorId,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "event_id" });
-  if (databaseError) {
-    await client.storage.from(EVENT_DOCUMENT_BUCKET).remove([path]);
-    return "database";
-  }
-  if (existing?.file_path && existing.file_path !== path) await client.storage.from(EVENT_DOCUMENT_BUCKET).remove([existing.file_path]);
-  return null;
-}
-
-async function removeEventDocument(eventId: string) {
-  const client = db();
-  const { data } = await client.from("event_documents").select("file_path").eq("event_id", eventId).maybeSingle();
-  const { error } = await client.from("event_documents").delete().eq("event_id", eventId);
-  if (error) return false;
-  if (data?.file_path) await client.storage.from(EVENT_DOCUMENT_BUCKET).remove([data.file_path]);
-  return true;
-}
-
 function configuredSupabaseRole() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
   if (key.startsWith("sb_secret_")) return "secret";
@@ -84,7 +41,7 @@ export async function login(fd: FormData) {
 
 export async function register(fd: FormData) {
   const password = text(fd, "password");
-  if (password.length < 4) redirect("/register?error=password");
+  if (!isValidNewPassword(password)) redirect("/register?error=password");
   const name = text(fd, "name");
   const client = db();
   const { data: sameNames } = await client.from("users").select("password_hash").eq("name", name);
@@ -251,14 +208,6 @@ export async function updateProfile(fd: FormData) {
   redirect("/profile?saved=1");
 }
 
-async function requireAdmin() {
-  const session = await getSession();
-  if (!session) redirect("/login");
-  const { data: user } = await db().from("users").select("id,name,role").eq("id", session.id).single();
-  if (!user || user.role === "member") redirect("/login");
-  return user;
-}
-
 export async function updateUserRole(fd: FormData) {
   const user = await requireAdmin();
   if (user.role !== "super_admin") redirect("/admin");
@@ -299,7 +248,7 @@ export async function resetUserPassword(fd: FormData) {
   if (user.role !== "super_admin") redirect("/admin");
   const userId = text(fd, "user_id");
   const temporaryPassword = text(fd, "temporary_password");
-  if (!userId || temporaryPassword.length < 4) redirect("/admin?error=password");
+  if (!userId || !isValidNewPassword(temporaryPassword)) redirect("/admin?error=password");
   const client = db();
   const { error } = await client.from("users").update({
     password_hash: await bcrypt.hash(temporaryPassword, 12),
@@ -312,159 +261,6 @@ export async function resetUserPassword(fd: FormData) {
     target_id: userId,
   });
   redirect("/admin?password_reset=1");
-}
-
-export async function createEvent(fd: FormData) {
-  const user = await requireAdmin();
-  const client = db();
-  const startsAt = tokyoLocalToIso(text(fd, "starts_at"));
-  const endsAt = tokyoLocalToIso(text(fd, "ends_at"));
-  if (!startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) redirect("/admin/events?error=create");
-  const { data, error } = await client.from("events").insert({
-    title: text(fd, "title"), starts_at: startsAt, ends_at: endsAt,
-    location: text(fd, "location"), capacity: Number(text(fd, "capacity")), description: text(fd, "description"),
-    event_type: text(fd, "event_type") || "tennis",
-  }).select("id").single();
-  if (error) redirect("/admin/events?error=create");
-  const document = fd.get("document");
-  if (data?.id && document instanceof File && document.size > 0) {
-    const documentError = await replaceEventDocument(data.id, user.id, document);
-    if (documentError) redirect(`/admin/events?error=document-${documentError}`);
-  }
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "event.create", target_type: "event", target_id: data?.id });
-  revalidatePath("/admin/events");
-}
-
-export async function updateEvent(fd: FormData) {
-  const user = await requireAdmin();
-  const eventId = text(fd, "event_id");
-  const startsAt = tokyoLocalToIso(text(fd, "starts_at"));
-  const endsAt = tokyoLocalToIso(text(fd, "ends_at"));
-  const capacity = Number(text(fd, "capacity"));
-  if (!eventId || !startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt) || capacity < 1) {
-    redirect("/admin/events?error=update");
-  }
-  const client = db();
-  const { count } = await client.from("reservations").select("*", { count: "exact", head: true })
-    .eq("event_id", eventId).eq("status", "reserved");
-  if (capacity < (count ?? 0)) redirect("/admin/events?error=capacity");
-  const { error } = await client.from("events").update({
-    title: text(fd, "title"),
-    starts_at: startsAt,
-    ends_at: endsAt,
-    location: text(fd, "location"),
-    capacity,
-    description: text(fd, "description"),
-    event_type: text(fd, "event_type") || "tennis",
-  }).eq("id", eventId);
-  if (error) redirect("/admin/events?error=update");
-  const document = fd.get("document");
-  if (document instanceof File && document.size > 0) {
-    const documentError = await replaceEventDocument(eventId, user.id, document);
-    if (documentError) redirect(`/admin/events?error=document-${documentError}`);
-  } else if (text(fd, "remove_document") === "true") {
-    if (!await removeEventDocument(eventId)) redirect("/admin/events?error=document-delete");
-  }
-  await client.from("audit_logs").insert({
-    actor_id: user.id,
-    action: "event.update",
-    target_type: "event",
-    target_id: eventId,
-  });
-  revalidatePath("/home");
-  redirect("/admin/events?updated=1");
-}
-
-export async function deleteEvent(fd: FormData) {
-  const user = await requireAdmin();
-  const eventId = text(fd, "event_id");
-  if (!eventId) redirect("/admin/events?error=selection");
-  const client = db();
-  const { data: document } = await client.from("event_documents").select("file_path").eq("event_id", eventId).maybeSingle();
-  const { error } = await client.from("events").delete().eq("id", eventId);
-  if (error) {
-    console.error("Event delete error", {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-    });
-    redirect("/admin/events?error=delete");
-  }
-  if (document?.file_path) await client.storage.from(EVENT_DOCUMENT_BUCKET).remove([document.file_path]);
-  await client.from("audit_logs").insert({
-    actor_id: user.id,
-    action: "event.delete",
-    target_type: "event",
-    target_id: eventId,
-  });
-  redirect("/admin/events?deleted=1");
-}
-
-export async function createFaq(fd: FormData) {
-  const user = await requireAdmin();
-  const client = db();
-  const { data, error } = await client.from("faqs").insert({
-    question: text(fd, "question"), answer: text(fd, "answer"),
-    category: text(fd, "category") || "その他",
-    sort_order: Number(text(fd, "sort_order")) || 0,
-    is_published: text(fd, "is_published") === "true",
-  }).select("id").single();
-  if (error) redirect("/admin/faqs?error=create");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.create", target_type: "faq", target_id: data?.id });
-  redirect("/admin/faqs?created=1");
-}
-
-export async function createFaqCategory(fd: FormData) {
-  const user = await requireAdmin();
-  const name = text(fd, "name");
-  if (!name) redirect("/admin/faqs?error=category");
-  const client = db();
-  const { data, error } = await client.from("faq_categories").insert({
-    name,
-    sort_order: Number(text(fd, "sort_order")) || 0,
-  }).select("id").single();
-  if (error) redirect("/admin/faqs?error=category");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.category.create", target_type: "faq_category", target_id: data?.id });
-  redirect("/admin/faqs?category_created=1");
-}
-
-export async function deleteFaqCategory(fd: FormData) {
-  const user = await requireAdmin();
-  const categoryId = text(fd, "category_id");
-  const categoryName = text(fd, "category_name");
-  const client = db();
-  const { count } = await client.from("faqs").select("*", { count: "exact", head: true }).eq("category", categoryName);
-  if (count) redirect("/admin/faqs?error=category-used");
-  const { error } = await client.from("faq_categories").delete().eq("id", categoryId);
-  if (error) redirect("/admin/faqs?error=category");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.category.delete", target_type: "faq_category", target_id: categoryId });
-  redirect("/admin/faqs?category_deleted=1");
-}
-
-export async function updateFaq(fd: FormData) {
-  const user = await requireAdmin();
-  const faqId = text(fd, "faq_id");
-  const client = db();
-  const { error } = await client.from("faqs").update({
-    question: text(fd, "question"), answer: text(fd, "answer"),
-    category: text(fd, "category") || "その他",
-    sort_order: Number(text(fd, "sort_order")) || 0,
-    is_published: text(fd, "is_published") === "true",
-    updated_at: new Date().toISOString(),
-  }).eq("id", faqId);
-  if (error) redirect("/admin/faqs?error=update");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.update", target_type: "faq", target_id: faqId });
-  redirect("/admin/faqs?updated=1");
-}
-
-export async function deleteFaq(fd: FormData) {
-  const user = await requireAdmin();
-  const faqId = text(fd, "faq_id");
-  const client = db();
-  const { error } = await client.from("faqs").delete().eq("id", faqId);
-  if (error) redirect("/admin/faqs?error=delete");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "faq.delete", target_type: "faq", target_id: faqId });
-  redirect("/admin/faqs?deleted=1");
 }
 
 export async function registerJoinedMember(fd: FormData) {
@@ -519,7 +315,7 @@ export async function restoreWithdrawalAccount(fd: FormData) {
   if (user.role !== "super_admin") redirect("/admin");
   const withdrawalId = text(fd, "withdrawal_id");
   const temporaryPassword = text(fd, "temporary_password");
-  if (temporaryPassword.length < 4) redirect("/admin/withdrawals?error=password");
+  if (!isValidNewPassword(temporaryPassword)) redirect("/admin/withdrawals?error=password");
   const client = db();
   const { data: archived, error: archiveError } = await client.from("membership_withdrawals").select("*").eq("id", withdrawalId).single();
   if (archiveError || !archived) redirect("/admin/withdrawals?error=restore");
@@ -584,16 +380,4 @@ export async function deleteWithdrawalRecords(fd: FormData) {
     target_type: "membership_withdrawals",
   });
   redirect(`/admin/withdrawals?deleted=${ids.length}`);
-}
-
-export async function updateAttendance(fd: FormData) {
-  const user = await requireAdmin();
-  const reservationId = text(fd, "id");
-  const status = text(fd, "status");
-  if (!["reserved", "cancelled", "attended"].includes(status)) redirect("/admin/events?error=attendance");
-  const client = db();
-  const { error } = await client.from("reservations").update({ status }).eq("id", reservationId);
-  if (error) redirect("/admin/events?error=attendance");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "reservation.attendance.update", target_type: "reservation", target_id: reservationId });
-  redirect("/admin/events?attendance_updated=1");
 }

@@ -52,7 +52,7 @@ export function PasswordResetForm({ users }: { users: PasswordUser[] }) {
         </div>}
         {query && !selected && results.length === 0 && <small>一致するユーザーがいません</small>}
       </label>
-      <label>新しい仮パスワード<input name="temporary_password" type="password" minLength={4} autoComplete="new-password" required /></label>
+      <label>新しい仮パスワード<input name="temporary_password" type="password" minLength={8} autoComplete="new-password" required /><small>8文字以上</small></label>
       <ConfirmSubmitButton className="primary" disabled={!selected} message={`${selected?.name ?? "選択したユーザー"}のパスワードを再設定しますか？`}>再設定する</ConfirmSubmitButton>
     </form>
   );

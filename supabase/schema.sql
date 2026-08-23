@@ -116,6 +116,17 @@ create table faq_categories (
   created_at timestamptz not null default now()
 );
 
+create table faq_questions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete set null,
+  question text not null check (char_length(trim(question)) between 5 and 500),
+  status text not null default 'pending' check (status in ('pending', 'answered', 'dismissed')),
+  published_faq_id uuid references faqs(id) on delete set null,
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+create index faq_questions_status_created_idx on faq_questions (status, created_at);
+
 alter table users enable row level security;
 alter table events enable row level security;
 alter table event_documents enable row level security;
@@ -126,6 +137,9 @@ alter table audit_logs enable row level security;
 alter table membership_withdrawals enable row level security;
 alter table faqs enable row level security;
 alter table faq_categories enable row level security;
+alter table faq_questions enable row level security;
+
+grant select, insert, update, delete on table faq_questions to service_role;
 
 -- This app only accesses the database from trusted Next.js server code using the service role.
 -- Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.
