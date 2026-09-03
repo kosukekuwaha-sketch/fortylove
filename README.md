@@ -11,7 +11,7 @@
 - プロフィール・アイコン編集
 - 練習／イベントの予約・キャンセル
 - 参加予定カレンダー
-- FAQ、イベントPDF資料の閲覧
+- イベントPDF資料の閲覧（FAQは準備中のためナビゲーション非表示）
 - FAQにない質問の投稿
 - アカウント削除
 
@@ -22,6 +22,7 @@
 - 参加者属性の確認
 - FAQ・カテゴリ管理
 - 新歓生からの質問への回答・FAQ公開
+- チャットBot回答データの追加・編集・停止と動作確認（最高情報責任者のみ）
 - 管理者権限の付与（最高情報責任者のみ）
 - 退会者台帳の閲覧・復旧・完全削除（最高情報責任者のみ）
 - 管理操作の監査ログ保存
@@ -41,6 +42,7 @@
 - `app/actions.ts`: 認証、プロフィール、会員・権限管理
 - `app/event-actions.ts`: イベント、参加状況、PDF操作
 - `app/faq-actions.ts`: FAQ・カテゴリ操作
+- `app/chatbot-actions.ts`: チャットBot回答データ操作
 - `lib/server/`: Server Action共通処理と外部ストレージ処理
 
 ## ローカルセットアップ
@@ -66,6 +68,8 @@ Supabase SQL Editorで`supabase/schema.sql`を実行後、開発サーバーを�
 ```bash
 pnpm dev
 ```
+
+既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`をSupabase SQL Editorで実行してください。チャットBotは一般公開されず、`super_admin`の`/admin/chatbot`だけに表示されます。
 
 ## 初期管理者
 

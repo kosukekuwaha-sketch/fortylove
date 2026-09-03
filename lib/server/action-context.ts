@@ -11,3 +11,9 @@ export async function requireAdmin() {
   if (!user || user.role === "member") redirect("/login");
   return user;
 }
+
+export async function requireSuperAdmin() {
+  const user = await requireAdmin();
+  if (user.role !== "super_admin") redirect("/admin");
+  return user;
+}

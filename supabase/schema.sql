@@ -65,7 +65,11 @@ create table membership_applications (
 
 create table app_settings (
   id smallint primary key default 1 check (id = 1),
-  recruiting_open boolean not null default true
+  recruiting_open boolean not null default true,
+  chatbot_enabled boolean not null default false,
+  chatbot_faq_enabled boolean not null default false,
+  chatbot_event_enabled boolean not null default true,
+  chatbot_fallback_message text not null default 'この質問はまだ回答データがありません。担当者が確認できるよう、回答内容を追加してください。'
 );
 insert into app_settings (id, recruiting_open) values (1, true);
 
@@ -127,6 +131,21 @@ create table faq_questions (
 );
 create index faq_questions_status_created_idx on faq_questions (status, created_at);
 
+create table chatbot_knowledge (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(trim(title)) between 2 and 100),
+  content text not null check (char_length(trim(content)) between 2 and 2000),
+  category text not null default '基本情報' check (char_length(trim(category)) between 1 and 50),
+  keywords text[] not null check (cardinality(keywords) between 1 and 20),
+  priority integer not null default 0 check (priority between 0 and 100),
+  is_active boolean not null default true,
+  created_by uuid references users(id) on delete set null,
+  updated_by uuid references users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index chatbot_knowledge_active_priority_idx on chatbot_knowledge (is_active, priority desc, updated_at desc);
+
 alter table users enable row level security;
 alter table events enable row level security;
 alter table event_documents enable row level security;
@@ -138,8 +157,10 @@ alter table membership_withdrawals enable row level security;
 alter table faqs enable row level security;
 alter table faq_categories enable row level security;
 alter table faq_questions enable row level security;
+alter table chatbot_knowledge enable row level security;
 
 grant select, insert, update, delete on table faq_questions to service_role;
+grant select, insert, update, delete on table chatbot_knowledge to service_role;
 
 -- This app only accesses the database from trusted Next.js server code using the service role.
 -- Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.
