@@ -28,5 +28,10 @@ export async function POST(request: Request) {
   ]);
   const match = findKnowledgeAnswer(input.data.message, (records ?? []) as ChatbotKnowledge[]);
   if (match) return NextResponse.json({ answer: match.content, source: `Bot回答データ：${match.title}`, kind: "knowledge" });
-  return NextResponse.json({ answer: settings?.chatbot_fallback_message ?? "この質問はまだ回答データがありません。担当者が確認できるよう、回答内容を追加してください。", source: "回答データなし", kind: "fallback" });
+  return NextResponse.json({
+    answer: settings?.chatbot_fallback_message ?? "この質問はまだ回答データがありません。",
+    source: "回答データなし",
+    kind: "fallback",
+    offerEscalation: true,
+  });
 }
