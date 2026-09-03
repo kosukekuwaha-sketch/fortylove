@@ -23,6 +23,7 @@
 - FAQ・カテゴリ管理
 - 新歓生からの質問への回答・FAQ公開
 - チャットBot回答データの追加・編集・停止と動作確認（最高情報責任者のみ）
+- Markdown資料を見出しごとに回答データへ下書き取り込み（最高情報責任者のみ）
 - 管理者権限の付与（最高情報責任者のみ）
 - 退会者台帳の閲覧・復旧・完全削除（最高情報責任者のみ）
 - 管理操作の監査ログ保存
@@ -69,7 +70,7 @@ Supabase SQL Editorで`supabase/schema.sql`を実行後、開発サーバーを�
 pnpm dev
 ```
 
-既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`をSupabase SQL Editorで実行してください。チャットBotは一般公開されず、`super_admin`の`/admin/chatbot`だけに表示されます。
+既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`、`supabase/migrations/20260904_add_chatbot_markdown_sources.sql`の順にSupabase SQL Editorで実行してください。チャットBotは一般公開されず、`super_admin`の`/admin/chatbot`だけに表示されます。Markdown取り込みはUTF-8の`.md`、最大512KBに限定され、取り込んだ項目は確認前に回答へ使われないよう「停止中」で保存されます。
 
 ## 初期管理者
 

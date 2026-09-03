@@ -301,6 +301,21 @@ select:disabled {
 .chatbot-sources > div span { display: grid; color: var(--muted); font-size: 11px; }
 .chatbot-sources > div strong { color: var(--ink); font-size: 17px; }
 .chatbot-sources > small { display: block; margin-top: 16px; color: var(--muted); line-height: 1.7; }
+.markdown-import-panel { margin-bottom: 20px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+.markdown-import-copy { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
+.markdown-import-copy h2 { margin: 0 0 3px; font-size: 18px; }
+.markdown-import-copy p { margin: 0; color: var(--muted); font-size: 12px; }
+.markdown-import-panel > form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: stretch; }
+.markdown-import-panel > form .dark { width: auto; }
+.markdown-file-input { position: relative; display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 13px 15px; border: 1px dashed #aebdb5; border-radius: 10px; background: #f8faf7; cursor: pointer; }
+.markdown-file-input > svg { width: 20px; color: var(--green); }
+.markdown-file-input > span { display: grid; }
+.markdown-file-input small { color: var(--muted); font-weight: 400; }
+.markdown-file-input input { position: absolute; width: 1px; height: 1px; padding: 0; opacity: 0; }
+.markdown-file-input:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px #176b4915; }
+.markdown-format-help { margin-top: 13px; color: var(--muted); font-size: 12px; }
+.markdown-format-help summary { width: fit-content; cursor: pointer; color: var(--green); font-weight: 700; }
+.markdown-format-help pre { overflow-x: auto; margin: 10px 0 0; padding: 13px; border-radius: 8px; background: var(--ink); color: #dce7e1; font: 12px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; }
 .chatbot-create-panel summary { display: flex; align-items: center; gap: 8px; }
 .chatbot-create-panel summary svg { width: 18px; }
 .knowledge-heading { display: flex; align-items: end; justify-content: space-between; margin: 28px 0 14px; }
@@ -577,6 +592,8 @@ select:disabled {
   .chatbot-workspace { grid-template-columns: 1fr; }
   .chatbot-messages { min-height: 280px; }
   .chat-message { max-width: 88%; }
+  .markdown-import-panel > form { grid-template-columns: 1fr; }
+  .markdown-import-panel > form .dark { width: 100%; }
   .knowledge-form { grid-template-columns: 1fr; }
   .knowledge-form .full, .knowledge-form .primary { grid-column: auto; }
   .knowledge-form .primary { width: 100%; }

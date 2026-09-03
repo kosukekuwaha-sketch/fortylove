@@ -139,12 +139,17 @@ create table chatbot_knowledge (
   keywords text[] not null check (cardinality(keywords) between 1 and 20),
   priority integer not null default 0 check (priority between 0 and 100),
   is_active boolean not null default true,
+  source_type text check (source_type in ('markdown')),
+  source_name text,
+  source_section text,
+  source_hash text,
   created_by uuid references users(id) on delete set null,
   updated_by uuid references users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 create index chatbot_knowledge_active_priority_idx on chatbot_knowledge (is_active, priority desc, updated_at desc);
+create unique index chatbot_knowledge_source_section_unique on chatbot_knowledge (source_hash, source_section);
 
 alter table users enable row level security;
 alter table events enable row level security;
