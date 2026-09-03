@@ -3,13 +3,17 @@ import { Brand } from "@/components/brand";
 import { UniversityFields } from "@/components/university-fields";
 import { RegistrationDraftKeeper } from "@/components/registration-draft";
 import { register } from "@/app/actions";
+import { db } from "@/lib/db";
 
 export default async function Register({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
+  const { data: settings } = await db().from("app_settings").select("recruiting_open").eq("id", 1).maybeSingle();
+  const recruitingOpen = settings?.recruiting_open ?? true;
   return <main className="form-page"><header><Brand /><Link href="/login">ログインへ</Link></header>
-    <section className="form-card"><p className="eyebrow green">EXPERIENCE Fortylove</p><h1>新歓受付登録</h1><p className="muted">基本情報を入力すると、すぐに練習を予約できます。</p>
-      {error && <div className="alert">{error === "duplicate" ? "同じ名前とパスワードの登録があります。別のパスワードを設定してください。" : error === "password" ? "パスワードは8文字以上で設定してください。" : "登録できませんでした。入力内容をご確認ください。"}</div>}
-      <form id="registration-form" action={register} className="grid-form">
+    <section className="form-card"><p className="eyebrow green">EXPERIENCE Fortylove</p><h1>新歓受付登録</h1><p className="muted">{recruitingOpen ? "基本情報を入力すると、すぐに練習を予約できます。" : "現在は新規登録を受け付けていません。"}</p>
+      {!recruitingOpen && <div className="alert">現在、新歓受付登録を停止しています。受付再開までお待ちください。</div>}
+      {recruitingOpen && error && <div className="alert">{error === "closed" ? "新歓受付は終了しました。" : error === "duplicate" ? "同じ名前とパスワードの登録があります。別のパスワードを設定してください。" : error === "password" ? "パスワードは8文字以上で設定してください。" : "登録できませんでした。入力内容をご確認ください。"}</div>}
+      {recruitingOpen && <form id="registration-form" action={register} className="grid-form">
         <RegistrationDraftKeeper />
         <label className="full">名前<input name="name" placeholder="山田 太郎" required /></label>
         <UniversityFields />
@@ -20,7 +24,7 @@ export default async function Register({ searchParams }: { searchParams: Promise
         <label className="full">テニス経験<textarea name="tennis_experience" placeholder="例：中学で軟式テニスを3年間、大学から硬式を始めたい など" /></label>
         <label>パスワード<input name="password" type="password" minLength={8} autoComplete="new-password" required /><small>8文字以上で設定してください</small></label>
         <button className="primary full" type="submit">新歓受付に登録する</button>
-      </form>
+      </form>}
     </section>
   </main>;
 }

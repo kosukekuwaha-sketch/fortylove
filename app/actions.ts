@@ -40,10 +40,13 @@ export async function login(fd: FormData) {
 }
 
 export async function register(fd: FormData) {
+  const client = db();
+  const { data: settings, error: settingsError } = await client.from("app_settings").select("recruiting_open").eq("id", 1).maybeSingle();
+  if (settingsError) redirect("/register?error=server");
+  if (settings?.recruiting_open === false) redirect("/register?error=closed");
   const password = text(fd, "password");
   if (!isValidNewPassword(password)) redirect("/register?error=password");
   const name = text(fd, "name");
-  const client = db();
   const { data: sameNames } = await client.from("users").select("password_hash").eq("name", name);
   if (sameNames?.some((u) => bcrypt.compareSync(password, u.password_hash))) redirect("/register?error=duplicate");
   const { data, error } = await client.from("users").insert({
