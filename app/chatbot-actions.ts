@@ -15,6 +15,19 @@ const knowledgeSchema = z.object({
   is_active: z.boolean(),
 });
 
+const escalationEmailSchema = z.union([z.literal(""), z.string().email().max(254)]);
+
+export async function updateChatbotEscalationEmail(formData: FormData) {
+  const user = await requireSuperAdmin();
+  const parsed = escalationEmailSchema.safeParse(formText(formData, "escalation_email"));
+  if (!parsed.success) redirect("/admin/chatbot?error=email-validation");
+  const client = db();
+  const { error } = await client.from("app_settings").update({ chatbot_escalation_email: parsed.data || null }).eq("id", 1);
+  if (error) redirect("/admin/chatbot?error=email-save");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: "chatbot.escalation_email.update", target_type: "app_settings" });
+  redirect("/admin/chatbot?email_updated=1");
+}
+
 function parsedKnowledge(formData: FormData) {
   const parsed = knowledgeSchema.safeParse({
     title: formText(formData, "title"),

@@ -309,6 +309,13 @@ select:disabled {
 .chatbot-sources > div span { display: grid; color: var(--muted); font-size: 11px; }
 .chatbot-sources > div strong { color: var(--ink); font-size: 17px; }
 .chatbot-sources > small { display: block; margin-top: 16px; color: var(--muted); line-height: 1.7; }
+.chatbot-email-panel { margin-bottom: 20px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+.chatbot-email-copy { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
+.chatbot-email-copy h2 { margin: 0 0 3px; font-size: 18px; }
+.chatbot-email-copy p { margin: 0; color: var(--muted); font-size: 12px; }
+.chatbot-email-panel > form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+.chatbot-email-panel > form .primary { width: auto; }
+.chatbot-email-panel > small { display: block; margin-top: 10px; color: var(--muted); }
 .markdown-import-panel { margin-bottom: 20px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: white; }
 .markdown-import-copy { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
 .markdown-import-copy h2 { margin: 0 0 3px; font-size: 18px; }
@@ -600,6 +607,8 @@ select:disabled {
   .chatbot-workspace { grid-template-columns: 1fr; }
   .chatbot-messages { min-height: 280px; }
   .chat-message { max-width: 88%; }
+  .chatbot-email-panel > form { grid-template-columns: 1fr; }
+  .chatbot-email-panel > form .primary { width: 100%; }
   .markdown-import-panel > form { grid-template-columns: 1fr; }
   .markdown-import-panel > form .dark { width: 100%; }
   .knowledge-form { grid-template-columns: 1fr; }

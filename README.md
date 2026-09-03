@@ -25,6 +25,7 @@
 - チャットBot回答データの追加・編集・停止と動作確認（最高情報責任者のみ）
 - Markdown資料を見出しごとに回答データへ下書き取り込み（最高情報責任者のみ）
 - 回答不能時の有人対応確認（「はい」の場合のみ管理者の対応待ちへ登録）
+- 有人対応の通知先メールアドレス設定（最高情報責任者のみ）とBrevoメール通知
 - 管理者権限の付与（最高情報責任者のみ）
 - 退会者台帳の閲覧・復旧・完全削除（最高情報責任者のみ）
 - 管理操作の監査ログ保存
@@ -61,6 +62,9 @@ pnpm install
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SESSION_SECRET=replace-with-at-least-32-random-characters
+BREVO_API_KEY=your-brevo-api-key
+BREVO_SENDER_EMAIL=verified-sender@example.com
+BREVO_SENDER_NAME=Fortylove
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY`はサーバー専用です。`NEXT_PUBLIC_`を付けたり、GitHubへコミットしたり、ブラウザ側のコードから参照したりしないでください。
@@ -71,7 +75,7 @@ Supabase SQL Editorで`supabase/schema.sql`を実行後、開発サーバーを�
 pnpm dev
 ```
 
-既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`、`supabase/migrations/20260904_add_chatbot_markdown_sources.sql`の順にSupabase SQL Editorで実行してください。チャットBotは一般公開されず、`super_admin`の`/admin/chatbot`だけに表示されます。Markdown取り込みはUTF-8の`.md`、最大512KBに限定され、取り込んだ項目は確認前に回答へ使われないよう「停止中」で保存されます。
+既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`、`supabase/migrations/20260904_add_chatbot_markdown_sources.sql`、`supabase/migrations/20260904_add_chatbot_escalation_email.sql`の順にSupabase SQL Editorで実行してください。チャットBotは一般公開されず、`super_admin`の`/admin/chatbot`だけに表示されます。Markdown取り込みはUTF-8の`.md`、最大512KBに限定され、取り込んだ項目は確認前に回答へ使われないよう「停止中」で保存されます。メール通知を使う場合は、Brevoで認証済みの送信元を用意し、Vercelにも`BREVO_API_KEY`、`BREVO_SENDER_EMAIL`、`BREVO_SENDER_NAME`を設定してください。通知先は最高情報責任者が管理画面から変更できます。
 
 ## 初期管理者
 
@@ -101,7 +105,7 @@ pnpm dev
 3. Vitest単体テスト
 4. Next.js本番ビルド
 
-本番はGitHubリポジトリをVercelへ接続し、Environment Variablesへ`.env.example`の3項目を登録します。`main`へのpush後、CIとVercelデプロイの双方が成功していることを確認してください。
+本番はGitHubリポジトリをVercelへ接続し、Environment Variablesへ`.env.example`の項目を登録します。`main`へのpush後、CIとVercelデプロイの双方が成功していることを確認してください。
 
 ## 運用監視
 

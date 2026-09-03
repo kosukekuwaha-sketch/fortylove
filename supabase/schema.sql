@@ -69,6 +69,13 @@ create table app_settings (
   chatbot_enabled boolean not null default false,
   chatbot_faq_enabled boolean not null default false,
   chatbot_event_enabled boolean not null default true,
+  chatbot_escalation_email text check (
+    chatbot_escalation_email is null
+    or (
+      char_length(chatbot_escalation_email) <= 254
+      and chatbot_escalation_email ~* '^[A-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$'
+    )
+  ),
   chatbot_fallback_message text not null default 'この質問はまだ回答データがありません。担当者が確認できるよう、回答内容を追加してください。'
 );
 insert into app_settings (id, recruiting_open) values (1, true);
