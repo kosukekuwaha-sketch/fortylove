@@ -24,11 +24,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
   const user = await getSession(); if (!user) redirect("/login");
   const { error, reserved, cancelled } = await searchParams;
   const client = db();
-  const [{ data: events }, { data: reservations }, { data: profile }, { data: documents }] = await Promise.all([
+  const [{ data: events }, { data: reservations }, { data: profile }, { data: documents }, { data: settings }] = await Promise.all([
     client.from("events").select("*,reservations(id,status)").gte("ends_at", new Date().toISOString()).order("starts_at"),
     client.from("reservations").select("event_id,status").eq("user_id", user.id),
     client.from("users").select("avatar_url").eq("id", user.id).maybeSingle(),
     client.from("event_documents").select("event_id,file_path,file_name"),
+    client.from("app_settings").select("chatbot_member_enabled").eq("id", 1).maybeSingle(),
   ]);
   const documentUrlByEvent = new Map<string, { url: string; fileName: string }>();
   if (documents?.length) {
@@ -43,7 +44,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
   return <main className="member-shell">
     <ClearRegistrationDraft />
     <header className="member-header"><Brand /><UserMenu name={user.name} avatarUrl={profile?.avatar_url} /></header>
-    <MemberNav active="home" />
+    <MemberNav active="home" chatbotEnabled={settings?.chatbot_member_enabled === true} />
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>練習やイベントをチェックして、Fortyloveを楽しみましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
       {error === "full" && <div className="alert">申し訳ございません。定員がいっぱいになってしまっています。</div>}

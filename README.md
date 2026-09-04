@@ -22,7 +22,8 @@
 - 参加者属性の確認
 - FAQ・カテゴリ管理
 - 新歓生からの質問への回答・FAQ公開
-- チャットBot全体の開始・停止と動作確認（最高情報責任者のみ）
+- チャットBotの常時動作確認（最高情報責任者のみ）
+- 管理者・一般ユーザーそれぞれへのチャットBot利用許可設定（最高情報責任者のみ）
 - Markdown資料を見出しごとに回答データへ反映し、同名ファイルの再読込で差し替え（最高情報責任者のみ）
 - 回答不能時の有人対応確認（「はい」の場合のみ管理者の対応待ちへ登録）
 - 有人対応の通知先メールアドレス設定（最高情報責任者のみ）とBrevoメール通知
@@ -76,7 +77,7 @@ Supabase SQL Editorで`supabase/schema.sql`を実行後、開発サーバーを�
 pnpm dev
 ```
 
-既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`、`supabase/migrations/20260904_add_chatbot_markdown_sources.sql`、`supabase/migrations/20260904_add_chatbot_escalation_email.sql`の順にSupabase SQL Editorで実行してください。チャットBotは一般公開されず、`super_admin`の`/admin/chatbot`だけに表示されます。回答データはUTF-8・最大512KBの`.md`だけで管理し、同名ファイルを再度読み込むと内容を差し替えます。回答の有効・無効は項目ごとではなく、チャットBot全体の開始・停止で管理します。メール通知を使う場合は、Brevoで認証済みの送信元を用意し、Vercelにも`BREVO_API_KEY`、`BREVO_SENDER_EMAIL`、`BREVO_SENDER_NAME`を設定してください。通知先は最高情報責任者が管理画面から変更できます。
+既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`、`supabase/migrations/20260904_add_chatbot_markdown_sources.sql`、`supabase/migrations/20260904_add_chatbot_escalation_email.sql`、`supabase/migrations/20260904_add_chatbot_audience_access.sql`の順にSupabase SQL Editorで実行してください。`super_admin`は`/admin/chatbot`で常時テストでき、管理者・一般ユーザーの利用許可を個別に切り替えられます。回答データはUTF-8・最大512KBの`.md`だけで管理し、同名ファイルを再度読み込むと内容を差し替えます。メール通知を使う場合は、Brevoで認証済みの送信元を用意し、Vercelにも`BREVO_API_KEY`、`BREVO_SENDER_EMAIL`、`BREVO_SENDER_NAME`を設定してください。通知先は最高情報責任者が管理画面から変更できます。
 
 ## 初期管理者
 

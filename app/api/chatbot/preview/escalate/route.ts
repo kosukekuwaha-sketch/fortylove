@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { sendChatbotEscalationEmail } from "@/lib/chatbot-escalation-email";
 import { db } from "@/lib/db";
+import { canUseChatbot, type ChatbotRole } from "@/lib/chatbot-access";
 
 const requestSchema = z.object({ question: z.string().trim().min(1).max(500) });
 
@@ -11,12 +12,12 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "ログインが必要です。" }, { status: 401 });
   const client = db();
   const { data: user } = await client.from("users").select("name,role").eq("id", session.id).single();
-  if (user?.role !== "super_admin") return NextResponse.json({ error: "利用できません。" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "利用できません。" }, { status: 403 });
 
   const input = requestSchema.safeParse(await request.json().catch(() => null));
   if (!input.success) return NextResponse.json({ error: "質問内容を確認してください。" }, { status: 400 });
-  const { data: settings } = await client.from("app_settings").select("chatbot_enabled,chatbot_escalation_email").eq("id", 1).maybeSingle();
-  if (!settings?.chatbot_enabled) return NextResponse.json({ error: "チャットBotは停止中です。" }, { status: 503 });
+  const { data: settings } = await client.from("app_settings").select("chatbot_admin_enabled,chatbot_member_enabled,chatbot_escalation_email").eq("id", 1).maybeSingle();
+  if (!canUseChatbot(user.role as ChatbotRole, settings)) return NextResponse.json({ error: "チャットBotの利用は許可されていません。" }, { status: 403 });
 
   const storedQuestion = `【チャットBot】${input.data.question}`.slice(0, 500);
   const duplicateSince = new Date(Date.now() - 5 * 60_000).toISOString();

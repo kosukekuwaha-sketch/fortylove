@@ -9,16 +9,18 @@ import { parseMarkdownKnowledge } from "@/lib/markdown-knowledge";
 
 const escalationEmailSchema = z.union([z.literal(""), z.string().email().max(254)]);
 
-export async function updateChatbotStatus(formData: FormData) {
+export async function updateChatbotAudienceAccess(formData: FormData) {
   const user = await requireSuperAdmin();
-  const value = formText(formData, "chatbot_enabled");
-  if (value !== "true" && value !== "false") redirect("/admin/chatbot?error=status-validation");
+  const audience = formText(formData, "audience");
+  const value = formText(formData, "enabled");
+  if (!['admin', 'member'].includes(audience) || (value !== "true" && value !== "false")) redirect("/admin/chatbot?error=access-validation");
   const enabled = value === "true";
   const client = db();
-  const { error } = await client.from("app_settings").update({ chatbot_enabled: enabled }).eq("id", 1);
-  if (error) redirect("/admin/chatbot?error=status-save");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: enabled ? "chatbot.start" : "chatbot.stop", target_type: "app_settings" });
-  redirect(`/admin/chatbot?status_updated=${enabled ? "started" : "stopped"}`);
+  const updates = audience === "admin" ? { chatbot_admin_enabled: enabled } : { chatbot_member_enabled: enabled };
+  const { error } = await client.from("app_settings").update(updates).eq("id", 1);
+  if (error) redirect("/admin/chatbot?error=access-save");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: `chatbot.access.${audience}.${enabled ? "enable" : "disable"}`, target_type: "app_settings" });
+  redirect(`/admin/chatbot?access_updated=${audience}-${enabled ? "on" : "off"}`);
 }
 
 export async function updateChatbotEscalationEmail(formData: FormData) {

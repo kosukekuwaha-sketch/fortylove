@@ -13,10 +13,11 @@ export default async function FaqPage({ searchParams }: { searchParams: Promise<
   if (!session) redirect("/login");
   const { submitted, error } = await searchParams;
   const client = db();
-  const [{ data: user }, { data: faqs }, { data: categories }] = await Promise.all([
+  const [{ data: user }, { data: faqs }, { data: categories }, { data: settings }] = await Promise.all([
     client.from("users").select("name,avatar_url").eq("id", session.id).single(),
     client.from("faqs").select("id,question,answer,category").eq("is_published", true).order("sort_order").order("created_at"),
     client.from("faq_categories").select("name").order("sort_order").order("name"),
+    client.from("app_settings").select("chatbot_member_enabled").eq("id", 1).maybeSingle(),
   ]);
   const usedCategories = [...new Set((faqs ?? []).map((faq) => faq.category))];
   const categoryNames = [
@@ -25,7 +26,7 @@ export default async function FaqPage({ searchParams }: { searchParams: Promise<
   ];
   return <main className="member-shell faq-page">
     <header className="member-header"><Brand /><UserMenu name={user?.name ?? session.name} avatarUrl={user?.avatar_url} /></header>
-    <MemberNav active="faq" />
+    <MemberNav active="faq" chatbotEnabled={settings?.chatbot_member_enabled === true} />
     <section className="faq-hero"><p className="eyebrow green">HELP CENTER</p><h1>よくある質問</h1><p>練習・イベントや入会について、よくある質問をまとめています。</p></section>
     <section className="faq-content">
       {submitted && <div className="success-message">質問を受け付けました。回答は内容を確認後、FAQで公開します。</div>}

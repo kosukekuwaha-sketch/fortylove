@@ -67,6 +67,8 @@ create table app_settings (
   id smallint primary key default 1 check (id = 1),
   recruiting_open boolean not null default true,
   chatbot_enabled boolean not null default false,
+  chatbot_admin_enabled boolean not null default false,
+  chatbot_member_enabled boolean not null default false,
   chatbot_faq_enabled boolean not null default false,
   chatbot_event_enabled boolean not null default true,
   chatbot_escalation_email text check (

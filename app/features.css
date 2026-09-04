@@ -315,6 +315,18 @@ select:disabled {
 .chatbot-status-panel form { flex: 0 0 auto; }
 .chatbot-status-panel button { width: auto; }
 .chatbot-status-panel button svg { width: 17px; }
+.chatbot-access-panel { margin-bottom: 20px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: white; }
+.chatbot-access-heading { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.chatbot-access-heading > svg { width: 23px; color: var(--green); }
+.chatbot-access-heading h2 { margin: 0 0 3px; font-size: 18px; }
+.chatbot-access-heading p { margin: 0; color: var(--muted); font-size: 11px; }
+.chatbot-access-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto 130px; gap: 13px; align-items: center; padding: 16px 20px; border-top: 1px solid #edf0ed; }
+.chatbot-access-row:first-of-type { border-top: 0; }
+.chatbot-access-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 10px; background: #edf4f0; color: var(--green); }
+.chatbot-access-icon svg { width: 19px; }
+.chatbot-access-row strong { display: block; }
+.chatbot-access-row p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+.chatbot-access-row button { width: 100%; padding: 10px 12px; }
 .chatbot-email-panel { margin-bottom: 20px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: white; }
 .chatbot-email-copy { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
 .chatbot-email-copy h2 { margin: 0 0 3px; font-size: 18px; }
@@ -368,6 +380,9 @@ select:disabled {
 .knowledge-source-card small { color: var(--muted); font-size: 11px; }
 .knowledge-source-card form { flex: 0 0 auto; }
 .knowledge-source-card .danger { width: auto; padding: 9px 13px; }
+.chatbot-use-page .chatbot-preview { max-width: 860px; }
+.chatbot-user-content { width: min(860px, calc(100% - 48px)); margin: 42px auto 64px; }
+.chatbot-user-content .section-head h1 { margin: 6px 0 0; font-size: 30px; }
 .member-tabs {
   position: sticky;
   z-index: 9;
@@ -623,6 +638,8 @@ select:disabled {
   .chat-message { max-width: 88%; }
   .chatbot-status-panel { align-items: stretch; flex-direction: column; }
   .chatbot-status-panel button { width: 100%; }
+  .chatbot-access-row { grid-template-columns: 38px minmax(0, 1fr) auto; }
+  .chatbot-access-row form { grid-column: 1 / -1; }
   .chatbot-email-panel > form { grid-template-columns: 1fr; }
   .chatbot-email-panel > form .primary { width: 100%; }
   .markdown-import-panel > form { grid-template-columns: 1fr; }
@@ -632,6 +649,7 @@ select:disabled {
   .knowledge-form .primary { width: 100%; }
   .knowledge-source-card { align-items: stretch; flex-direction: column; }
   .knowledge-source-card .danger { width: 100%; }
+  .chatbot-user-content { width: calc(100% - 28px); margin: 30px auto 90px; }
   .admin-event { grid-template-columns: minmax(0, 1fr); padding: 16px; }
   .admin-event-stats { justify-content: flex-start; flex-wrap: wrap; }
   .admin-event details { grid-column: 1; }

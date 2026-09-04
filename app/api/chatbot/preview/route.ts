@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { canUseChatbot, type ChatbotRole } from "@/lib/chatbot-access";
 import { findKnowledgeAnswer, formatEventAnswer, isEventQuestion, type ChatbotEvent, type ChatbotKnowledge } from "@/lib/chatbot";
 
 const requestSchema = z.object({ message: z.string().trim().min(1).max(500) });
@@ -11,13 +12,13 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "ログインが必要です。" }, { status: 401 });
   const client = db();
   const { data: user } = await client.from("users").select("role").eq("id", session.id).single();
-  if (user?.role !== "super_admin") return NextResponse.json({ error: "利用できません。" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "利用できません。" }, { status: 403 });
 
   const input = requestSchema.safeParse(await request.json().catch(() => null));
   if (!input.success) return NextResponse.json({ error: "質問は500文字以内で入力してください。" }, { status: 400 });
 
-  const { data: settings } = await client.from("app_settings").select("chatbot_enabled,chatbot_fallback_message").eq("id", 1).maybeSingle();
-  if (!settings?.chatbot_enabled) return NextResponse.json({ error: "チャットBotは停止中です。" }, { status: 503 });
+  const { data: settings } = await client.from("app_settings").select("chatbot_admin_enabled,chatbot_member_enabled,chatbot_fallback_message").eq("id", 1).maybeSingle();
+  if (!canUseChatbot(user.role as ChatbotRole, settings)) return NextResponse.json({ error: "チャットBotの利用は許可されていません。" }, { status: 403 });
 
   if (isEventQuestion(input.data.message)) {
     const { data: events } = await client.from("events").select("id,title,starts_at,ends_at,location,capacity,description,reservations(status)").gte("ends_at", new Date().toISOString()).order("starts_at").limit(1);

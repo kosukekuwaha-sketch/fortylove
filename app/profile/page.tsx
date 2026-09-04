@@ -16,10 +16,14 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
   const session = await getSession();
   if (!session) redirect("/login");
   const { saved, error } = await searchParams;
-  const { data: user } = await db().from("users").select("*").eq("id", session.id).single();
+  const client = db();
+  const [{ data: user }, { data: settings }] = await Promise.all([
+    client.from("users").select("*").eq("id", session.id).single(),
+    client.from("app_settings").select("chatbot_member_enabled").eq("id", 1).maybeSingle(),
+  ]);
   return <main className="member-shell">
     <header className="member-header"><Brand /><UserMenu name={session.name} avatarUrl={user?.avatar_url} /></header>
-    <MemberNav active="profile" />
+    <MemberNav active="profile" chatbotEnabled={settings?.chatbot_member_enabled === true} />
     <section className="profile-card">
       <div className={`profile-avatar${user?.avatar_url ? " has-image" : ""}`}>{user?.avatar_url ? <img src={user.avatar_url} alt="" /> : session.name[0]}</div>
       <h1>{session.name}</h1>
