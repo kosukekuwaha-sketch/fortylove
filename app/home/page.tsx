@@ -11,6 +11,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SiteFooter } from "@/components/site-footer";
 import { ParticipationCalendar } from "@/components/participation-calendar";
 import { PdfViewer } from "@/components/pdf-viewer";
+import { ChatbotWidget } from "@/components/chatbot-widget";
 import { tokyoParts, tokyoTimeLabel } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
   return <main className="member-shell">
     <ClearRegistrationDraft />
     <header className="member-header"><Brand /><UserMenu name={user.name} avatarUrl={profile?.avatar_url} /></header>
-    <MemberNav active="home" chatbotEnabled={settings?.chatbot_member_enabled === true} />
+    <MemberNav active="home" />
     <section className="welcome"><div><p className="eyebrow green">GOOD TO SEE YOU</p><h1>{user.name}さん、こんにちは。</h1><p>練習やイベントをチェックして、Fortyloveを楽しみましょう。</p></div><div className="mini-court"><span /></div></section>
     <section className="member-content">
       {error === "full" && <div className="alert">申し訳ございません。定員がいっぱいになってしまっています。</div>}
@@ -68,5 +69,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
       })}</div>
     </section>
     <SiteFooter />
+    {settings?.chatbot_member_enabled === true && <ChatbotWidget mode="member" />}
   </main>;
 }

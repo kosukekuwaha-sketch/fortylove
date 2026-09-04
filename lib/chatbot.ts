@@ -6,6 +6,7 @@ export type ChatbotKnowledge = {
   keywords: string[];
   priority: number;
   is_active: boolean;
+  source_name?: string | null;
 };
 
 export type ChatbotEvent = {
@@ -40,7 +41,7 @@ function diceSimilarity(left: string, right: string) {
 
 export function findKnowledgeAnswer(question: string, records: ChatbotKnowledge[]) {
   const normalizedQuestion = normalizeChatText(question);
-  const ranked = records.filter((record) => record.is_active).map((record) => {
+  const ranked = records.map((record) => {
     const keywordHits = record.keywords.filter((keyword) => {
       const normalizedKeyword = normalizeChatText(keyword);
       return normalizedKeyword.length >= 2 && normalizedQuestion.includes(normalizedKeyword);

@@ -5,6 +5,7 @@ import { UserMenu } from "@/components/user-menu";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { submitFaqQuestion } from "@/app/faq-actions";
+import { ChatbotWidget } from "@/components/chatbot-widget";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function FaqPage({ searchParams }: { searchParams: Promise<
   ];
   return <main className="member-shell faq-page">
     <header className="member-header"><Brand /><UserMenu name={user?.name ?? session.name} avatarUrl={user?.avatar_url} /></header>
-    <MemberNav active="faq" chatbotEnabled={settings?.chatbot_member_enabled === true} />
+    <MemberNav active="faq" />
     <section className="faq-hero"><p className="eyebrow green">HELP CENTER</p><h1>よくある質問</h1><p>練習・イベントや入会について、よくある質問をまとめています。</p></section>
     <section className="faq-content">
       {submitted && <div className="success-message">質問を受け付けました。回答は内容を確認後、FAQで公開します。</div>}
@@ -36,6 +37,6 @@ export default async function FaqPage({ searchParams }: { searchParams: Promise<
         {faqs?.filter((faq) => faq.category === category).map((faq) => <details className="faq-item" key={faq.id}><summary>{faq.question}</summary><p>{faq.answer}</p></details>)}
       </div></section>)}
       {!faqs?.length && <div className="empty"><p>現在、公開中のFAQはありません。</p></div>}
-    </section>
+    </section>{settings?.chatbot_member_enabled === true && <ChatbotWidget mode="member" />}
   </main>;
 }

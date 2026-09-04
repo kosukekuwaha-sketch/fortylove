@@ -23,6 +23,24 @@ export async function updateChatbotAudienceAccess(formData: FormData) {
   redirect(`/admin/chatbot?access_updated=${audience}-${enabled ? "on" : "off"}`);
 }
 
+export async function updateChatbotAudienceSources(formData: FormData) {
+  const user = await requireSuperAdmin();
+  const audience = formText(formData, "audience");
+  const sourceNames = [...new Set(formData.getAll("source_names").map((value) => String(value).trim()).filter(Boolean))];
+  if (!['admin', 'member'].includes(audience) || sourceNames.length > 50 || sourceNames.some((name) => name.length > 255)) redirect("/admin/chatbot?error=sources-validation");
+  const client = db();
+  if (sourceNames.length) {
+    const { data: available, error: sourceError } = await client.from("chatbot_knowledge").select("source_name").eq("source_type", "markdown").in("source_name", sourceNames);
+    const availableNames = new Set((available ?? []).map((item) => item.source_name));
+    if (sourceError || sourceNames.some((name) => !availableNames.has(name))) redirect("/admin/chatbot?error=sources-validation");
+  }
+  const updates = audience === "admin" ? { chatbot_admin_sources: sourceNames } : { chatbot_member_sources: sourceNames };
+  const { error } = await client.from("app_settings").update(updates).eq("id", 1);
+  if (error) redirect("/admin/chatbot?error=sources-save");
+  await client.from("audit_logs").insert({ actor_id: user.id, action: `chatbot.sources.${audience}.update`, target_type: "app_settings" });
+  redirect(`/admin/chatbot?sources_updated=${audience}`);
+}
+
 export async function updateChatbotEscalationEmail(formData: FormData) {
   const user = await requireSuperAdmin();
   const parsed = escalationEmailSchema.safeParse(formText(formData, "escalation_email"));
@@ -41,6 +59,11 @@ export async function deleteChatbotMarkdownSource(formData: FormData) {
   const client = db();
   const { error } = await client.from("chatbot_knowledge").delete().eq("source_type", "markdown").eq("source_name", sourceName.data);
   if (error) redirect("/admin/chatbot?error=markdown-delete");
+  const { data: settings } = await client.from("app_settings").select("chatbot_admin_sources,chatbot_member_sources").eq("id", 1).maybeSingle();
+  await client.from("app_settings").update({
+    chatbot_admin_sources: (settings?.chatbot_admin_sources ?? []).filter((name: string) => name !== sourceName.data),
+    chatbot_member_sources: (settings?.chatbot_member_sources ?? []).filter((name: string) => name !== sourceName.data),
+  }).eq("id", 1);
   await client.from("audit_logs").insert({ actor_id: user.id, action: "chatbot.knowledge.delete_markdown", target_type: "chatbot_knowledge" });
   redirect("/admin/chatbot?source_deleted=1");
 }

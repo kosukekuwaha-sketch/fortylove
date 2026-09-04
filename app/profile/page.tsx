@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/user-menu";
 import { UniversityFields } from "@/components/university-fields";
 import { AvatarInput } from "@/components/avatar-input";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { ChatbotWidget } from "@/components/chatbot-widget";
 import { visibleDepartment } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
   ]);
   return <main className="member-shell">
     <header className="member-header"><Brand /><UserMenu name={session.name} avatarUrl={user?.avatar_url} /></header>
-    <MemberNav active="profile" chatbotEnabled={settings?.chatbot_member_enabled === true} />
+    <MemberNav active="profile" />
     <section className="profile-card">
       <div className={`profile-avatar${user?.avatar_url ? " has-image" : ""}`}>{user?.avatar_url ? <img src={user.avatar_url} alt="" /> : session.name[0]}</div>
       <h1>{session.name}</h1>
@@ -53,6 +54,6 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
       </form>
       <section className="withdraw-panel"><strong>退会手続き</strong><form action={deleteOwnAccount}><ConfirmSubmitButton className="danger" message="退会するとアカウントと予約情報が削除され、元に戻せません。本当に退会しますか？">退会してアカウントを削除</ConfirmSubmitButton></form></section>
       <form action={logout}><ConfirmSubmitButton className="secondary" message="ログアウトしますか？">ログアウト</ConfirmSubmitButton></form>
-    </section>
+    </section>{settings?.chatbot_member_enabled === true && <ChatbotWidget mode="member" />}
   </main>;
 }

@@ -8,6 +8,7 @@ const knowledge = [{
 describe("chatbot matching", () => {
   it("表記ゆれを正規化する", () => expect(normalizeChatText("テニス、 初心者！")).toBe("テニス初心者"));
   it("キーワードに合う知識を選ぶ", () => expect(findKnowledgeAnswer("テニス未経験でも大丈夫？", knowledge)?.id).toBe("1"));
+  it("旧回答単位の状態に関係なくMarkdown知識を使う", () => expect(findKnowledgeAnswer("テニス未経験でも大丈夫？", [{ ...knowledge[0], is_active: false }])?.id).toBe("1"));
   it("無関係な質問には回答しない", () => expect(findKnowledgeAnswer("会計担当者の電話番号は？", knowledge)).toBeNull());
   it("イベント質問を識別する", () => expect(isEventQuestion("次の新歓はいつ？")).toBe(true));
   it("参加条件の質問をイベント質問と誤判定しない", () => expect(isEventQuestion("新歓は初心者でも参加できますか？")).toBe(false));

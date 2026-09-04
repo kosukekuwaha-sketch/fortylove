@@ -69,6 +69,8 @@ create table app_settings (
   chatbot_enabled boolean not null default false,
   chatbot_admin_enabled boolean not null default false,
   chatbot_member_enabled boolean not null default false,
+  chatbot_admin_sources text[] not null default '{}',
+  chatbot_member_sources text[] not null default '{}',
   chatbot_faq_enabled boolean not null default false,
   chatbot_event_enabled boolean not null default true,
   chatbot_escalation_email text check (
@@ -160,6 +162,34 @@ create table chatbot_knowledge (
 create index chatbot_knowledge_active_priority_idx on chatbot_knowledge (is_active, priority desc, updated_at desc);
 create unique index chatbot_knowledge_source_section_unique on chatbot_knowledge (source_hash, source_section);
 
+create table chatbot_daily_usage (
+  user_id uuid not null references users(id) on delete cascade,
+  usage_date date not null,
+  message_count integer not null default 0 check (message_count between 0 and 10),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, usage_date)
+);
+
+create or replace function consume_chatbot_message(p_user_id uuid, p_usage_date date)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  consumed integer;
+begin
+  insert into chatbot_daily_usage (user_id, usage_date, message_count)
+  values (p_user_id, p_usage_date, 1)
+  on conflict (user_id, usage_date) do update
+    set message_count = chatbot_daily_usage.message_count + 1,
+        updated_at = now()
+    where chatbot_daily_usage.message_count < 10
+  returning message_count into consumed;
+  return consumed is not null;
+end;
+$$;
+
 alter table users enable row level security;
 alter table events enable row level security;
 alter table event_documents enable row level security;
@@ -172,9 +202,13 @@ alter table faqs enable row level security;
 alter table faq_categories enable row level security;
 alter table faq_questions enable row level security;
 alter table chatbot_knowledge enable row level security;
+alter table chatbot_daily_usage enable row level security;
 
 grant select, insert, update, delete on table faq_questions to service_role;
 grant select, insert, update, delete on table chatbot_knowledge to service_role;
+grant select, insert, update, delete on table chatbot_daily_usage to service_role;
+revoke all on function consume_chatbot_message(uuid, date) from public;
+grant execute on function consume_chatbot_message(uuid, date) to service_role;
 
 -- This app only accesses the database from trusted Next.js server code using the service role.
 -- Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.
