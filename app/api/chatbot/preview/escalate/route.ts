@@ -15,6 +15,8 @@ export async function POST(request: Request) {
 
   const input = requestSchema.safeParse(await request.json().catch(() => null));
   if (!input.success) return NextResponse.json({ error: "質問内容を確認してください。" }, { status: 400 });
+  const { data: settings } = await client.from("app_settings").select("chatbot_enabled,chatbot_escalation_email").eq("id", 1).maybeSingle();
+  if (!settings?.chatbot_enabled) return NextResponse.json({ error: "チャットBotは停止中です。" }, { status: 503 });
 
   const storedQuestion = `【チャットBot】${input.data.question}`.slice(0, 500);
   const duplicateSince = new Date(Date.now() - 5 * 60_000).toISOString();
@@ -24,7 +26,6 @@ export async function POST(request: Request) {
   const { data, error } = await client.from("faq_questions").insert({ user_id: session.id, question: storedQuestion, status: "pending" }).select("id").single();
   if (error || !data) return NextResponse.json({ error: "管理者へ通知できませんでした。" }, { status: 500 });
   await client.from("audit_logs").insert({ actor_id: session.id, action: "chatbot.escalation.request", target_type: "faq_question", target_id: data.id });
-  const { data: settings } = await client.from("app_settings").select("chatbot_escalation_email").eq("id", 1).maybeSingle();
   const emailResult = await sendChatbotEscalationEmail({ recipient: settings?.chatbot_escalation_email ?? null, question: input.data.question, requesterName: user.name, questionId: data.id });
   await client.from("audit_logs").insert({ actor_id: session.id, action: `chatbot.escalation_email.${emailResult}`, target_type: "faq_question", target_id: data.id });
   const message = emailResult === "sent"

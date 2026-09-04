@@ -5,16 +5,16 @@ import { Bot, Send, ShieldCheck, UserRoundCheck } from "lucide-react";
 
 type Message = { role: "user" | "bot"; text: string; source?: string; offerEscalation?: boolean; question?: string; decided?: boolean };
 
-export function ChatbotPreview() {
+export function ChatbotPreview({ enabled }: { enabled: boolean }) {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([{ role: "bot", text: "動作確認用チャットです。一般ユーザーにはまだ公開されていません。" }]);
+  const [messages, setMessages] = useState<Message[]>([{ role: "bot", text: enabled ? "動作確認用チャットです。一般ユーザーにはまだ公開されていません。" : "チャットBotは停止中です。上の設定から開始すると動作確認できます。" }]);
   const [sending, setSending] = useState(false);
   const [escalating, setEscalating] = useState(false);
 
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = message.trim();
-    if (!value || sending) return;
+    if (!enabled || !value || sending) return;
     setMessages((current) => [...current, { role: "user", text: value }]);
     setMessage("");
     setSending(true);
@@ -48,8 +48,8 @@ export function ChatbotPreview() {
   }
 
   return <section className="chatbot-preview" aria-labelledby="chatbot-preview-title">
-    <header><span className="chatbot-icon"><Bot /></span><div><h2 id="chatbot-preview-title">動作確認チャット</h2><p><ShieldCheck />super_admin限定</p></div></header>
+    <header><span className="chatbot-icon"><Bot /></span><div><h2 id="chatbot-preview-title">動作確認チャット</h2><p><ShieldCheck />super_admin限定・{enabled ? "稼働中" : "停止中"}</p></div></header>
     <div className="chatbot-messages" aria-live="polite">{messages.map((item, index) => <div className={`chat-message ${item.role}`} key={`${item.role}-${index}`}><p>{item.text}</p>{item.source && <small>根拠：{item.source}</small>}{item.offerEscalation && !item.decided && <div className="escalation-choice"><strong><UserRoundCheck />有人対応を希望しますか？</strong><div><button type="button" onClick={() => requestEscalation(index, item.question ?? "")} disabled={escalating}>はい</button><button type="button" onClick={() => declineEscalation(index)} disabled={escalating}>いいえ</button></div><small>「はい」を選んだ場合のみ、管理者の対応待ちへ登録されます。</small></div>}</div>)}{sending && <div className="chat-message bot"><p>回答を確認しています…</p></div>}</div>
-    <form onSubmit={send}><label className="sr-only" htmlFor="chatbot-preview-input">質問</label><input id="chatbot-preview-input" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={500} placeholder="例：次の新歓はいつ？" /><button type="submit" disabled={sending || !message.trim()} aria-label="送信"><Send /></button></form>
+    <form onSubmit={send}><label className="sr-only" htmlFor="chatbot-preview-input">質問</label><input id="chatbot-preview-input" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={500} placeholder={enabled ? "例：次の新歓はいつ？" : "チャットBotは停止中です"} disabled={!enabled} /><button type="submit" disabled={!enabled || sending || !message.trim()} aria-label="送信"><Send /></button></form>
   </section>;
 }
