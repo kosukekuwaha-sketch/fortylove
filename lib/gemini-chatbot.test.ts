@@ -11,6 +11,16 @@ describe("Gemini grounded chatbot", () => {
     expect(prompt).toContain("未経験でも参加できますか？");
   });
 
+  it("複数FAQを統合するときも渡された回答だけを根拠にする", () => {
+    const prompt = buildGroundedPrompt("初心者でもバイトと両立できますか？", [
+      ...records,
+      { ...records[0], id: "2", title: "参加頻度", content: "毎回の参加は必須ではありません。", keywords: ["参加頻度"] },
+    ]);
+    expect(prompt).toContain("初心者も歓迎しています。");
+    expect(prompt).toContain("毎回の参加は必須ではありません。");
+    expect(prompt).toContain("必ず __NO_ANSWER__ だけを返してください");
+  });
+
   it("資料に答えがない応答は採用しない", async () => {
     const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: "__NO_ANSWER__" }] } }] }) });
     await expect(generateGroundedAnswer("質問", records, { config: { apiKey: "key" }, fetcher })).resolves.toBeNull();

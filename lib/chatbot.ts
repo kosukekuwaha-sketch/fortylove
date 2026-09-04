@@ -39,9 +39,22 @@ function diceSimilarity(left: string, right: string) {
   return (2 * overlap) / (a.size + b.size);
 }
 
-export function findKnowledgeAnswer(question: string, records: ChatbotKnowledge[]) {
+export type RankedKnowledge = {
+  record: ChatbotKnowledge;
+  score: number;
+  keywordHits: number;
+  similarity: number;
+};
+
+export type KnowledgeDecision =
+  | { kind: "none" }
+  | { kind: "direct"; record: ChatbotKnowledge }
+  | { kind: "choices"; records: ChatbotKnowledge[] }
+  | { kind: "synthesize"; records: ChatbotKnowledge[] };
+
+export function rankKnowledgeAnswers(question: string, records: ChatbotKnowledge[]): RankedKnowledge[] {
   const normalizedQuestion = normalizeChatText(question);
-  const ranked = records.map((record) => {
+  return records.map((record) => {
     const keywordHits = record.keywords.filter((keyword) => {
       const normalizedKeyword = normalizeChatText(keyword);
       return normalizedKeyword.length >= 2 && normalizedQuestion.includes(normalizedKeyword);
@@ -50,10 +63,38 @@ export function findKnowledgeAnswer(question: string, records: ChatbotKnowledge[
     const similarity = diceSimilarity(question, `${record.title} ${record.keywords.join(" ")}`);
     const score = keywordHits * 100 + (titleIncluded ? 60 : 0) + similarity * 40 + record.priority;
     return { record, score, keywordHits, similarity };
-  }).sort((left, right) => right.score - left.score);
+  })
+    .filter((match) => match.keywordHits > 0 || match.similarity >= 0.22)
+    .sort((left, right) => right.score - left.score);
+}
+
+export function decideKnowledgeResponse(question: string, records: ChatbotKnowledge[]): KnowledgeDecision {
+  const ranked = rankKnowledgeAnswers(question, records);
   const best = ranked[0];
-  if (!best || (best.keywordHits === 0 && best.similarity < 0.22)) return null;
-  return best.record;
+  if (!best) return { kind: "none" };
+
+  const normalizedQuestion = normalizeChatText(question);
+  if (normalizedQuestion === normalizeChatText(best.record.title)) {
+    return { kind: "direct", record: best.record };
+  }
+
+  const multiIntent = question.length >= 12
+    && ranked.filter((match) => match.keywordHits > 0).length >= 2
+    && /(?:、|と|も|けど|ながら|それに|さらに|両方)/.test(question);
+  if (multiIntent) return { kind: "synthesize", records: ranked.slice(0, 3).map((match) => match.record) };
+
+  const closeMatches = ranked
+    .filter((match) => best.score - match.score <= 25)
+    .slice(0, 3);
+  if (closeMatches.length >= 2) {
+    return { kind: "choices", records: closeMatches.map((match) => match.record) };
+  }
+  return { kind: "direct", record: best.record };
+}
+
+export function findKnowledgeAnswer(question: string, records: ChatbotKnowledge[]) {
+  const decision = decideKnowledgeResponse(question, records);
+  return decision.kind === "direct" ? decision.record : null;
 }
 
 const eventSubjectWords = ["新歓", "イベント", "練習", "予定"];
@@ -61,6 +102,9 @@ const eventDetailWords = ["開催", "次回", "次の", "いつ", "何時", "日
 
 export function isEventQuestion(question: string) {
   const normalized = normalizeChatText(question);
+  const asksRecruitingPeriod = ["いつまで", "募集期間", "受付期間", "新歓期間"]
+    .some((word) => normalized.includes(normalizeChatText(word)));
+  if (asksRecruitingPeriod) return false;
   const hasSubject = eventSubjectWords.some((word) => normalized.includes(normalizeChatText(word)));
   const hasDetail = eventDetailWords.some((word) => normalized.includes(normalizeChatText(word)));
   return hasDetail && (hasSubject || ["空き", "空席", "定員", "入れる"].some((word) => normalized.includes(normalizeChatText(word))));
