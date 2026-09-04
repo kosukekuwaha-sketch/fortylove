@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useId, useState } from "react";
+import { FormEvent, useEffect, useId, useRef, useState } from "react";
 import { Bot, Send, ShieldCheck, UserRoundCheck, X } from "lucide-react";
 
 type Message = { role: "user" | "bot"; text: string; source?: string; offerEscalation?: boolean; question?: string; decided?: boolean };
@@ -8,11 +8,26 @@ type Message = { role: "user" | "bot"; text: string; source?: string; offerEscal
 export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview" | "admin" | "member"; onClose?: () => void }) {
   const titleId = useId();
   const inputId = useId();
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const [inputName, setInputName] = useState("fortylove-chatbot-question");
   const [testAudience, setTestAudience] = useState<"admin" | "member">("member");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([{ role: "bot", text: mode === "preview" ? "動作確認用チャットです。公開設定に関係なくいつでもテストできます。" : "Fortyloveについて知りたいことを質問してください。" }]);
   const [sending, setSending] = useState(false);
   const [escalating, setEscalating] = useState(false);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const container = messagesRef.current;
+      if (!container) return;
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [messages, sending, escalating]);
+
+  useEffect(() => {
+    setInputName(`fortylove-chatbot-question-${crypto.randomUUID()}`);
+  }, []);
 
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -58,7 +73,7 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
   return <section className="chatbot-preview" aria-labelledby={titleId}>
     <header><span className="chatbot-icon"><Bot /></span><div><h2 id={titleId}>{mode === "preview" ? "動作確認チャット" : "Fortylove チャットBot"}</h2><p><ShieldCheck />{mode === "preview" ? "super_adminは常時テスト可能" : mode === "admin" ? "管理者向け" : "メンバー向け"}</p></div>{onClose && <button className="chatbot-close" type="button" onClick={onClose} aria-label="チャットを閉じる"><X /></button>}</header>
     {mode === "preview" && <div className="chatbot-test-audience"><span>テスト対象</span><div><button type="button" className={testAudience === "admin" ? "active" : ""} onClick={() => changeTestAudience("admin")}>管理者</button><button type="button" className={testAudience === "member" ? "active" : ""} onClick={() => changeTestAudience("member")}>一般ユーザー</button></div></div>}
-    <div className="chatbot-messages" aria-live="polite">{messages.map((item, index) => <div className={`chat-message ${item.role}`} key={`${item.role}-${index}`}><p>{item.text}</p>{item.source && <small>根拠：{item.source}</small>}{item.offerEscalation && !item.decided && <div className="escalation-choice"><strong><UserRoundCheck />有人対応を希望しますか？</strong><div><button type="button" onClick={() => requestEscalation(index, item.question ?? "")} disabled={escalating}>はい</button><button type="button" onClick={() => declineEscalation(index)} disabled={escalating}>いいえ</button></div><small>「はい」を選んだ場合のみ、管理者の対応待ちへ登録されます。</small></div>}</div>)}{sending && <div className="chat-message bot"><p>回答を確認しています…</p></div>}</div>
-    <form onSubmit={send}><label className="sr-only" htmlFor={inputId}>質問</label><input id={inputId} value={message} onChange={(event) => setMessage(event.target.value)} maxLength={500} placeholder="例：次の新歓はいつ？" /><button type="submit" disabled={sending || !message.trim()} aria-label="送信"><Send /></button></form>
+    <div ref={messagesRef} className="chatbot-messages" aria-live="polite">{messages.map((item, index) => <div className={`chat-message ${item.role}`} key={`${item.role}-${index}`}><p>{item.text}</p>{item.source && <small>根拠：{item.source}</small>}{item.offerEscalation && !item.decided && <div className="escalation-choice"><strong><UserRoundCheck />有人対応を希望しますか？</strong><div><button type="button" onClick={() => requestEscalation(index, item.question ?? "")} disabled={escalating}>はい</button><button type="button" onClick={() => declineEscalation(index)} disabled={escalating}>いいえ</button></div><small>「はい」を選んだ場合のみ、管理者の対応待ちへ登録されます。</small></div>}</div>)}{sending && <div className="chat-message bot"><p>回答を確認しています…</p></div>}</div>
+    <form onSubmit={send} autoComplete="off"><label className="sr-only" htmlFor={inputId}>質問</label><input id={inputId} name={inputName} value={message} onChange={(event) => setMessage(event.target.value)} maxLength={500} placeholder="例：次の新歓はいつ？" autoComplete="new-password" aria-autocomplete="none" data-1p-ignore="true" data-lpignore="true" data-form-type="other" /><button type="submit" disabled={sending || !message.trim()} aria-label="送信"><Send /></button></form>
   </section>;
 }
