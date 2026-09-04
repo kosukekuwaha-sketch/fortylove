@@ -34,6 +34,10 @@ jobs:
       - uses: actions/checkout@v4
       - run: psql -v ON_ERROR_STOP=1 -c "create role service_role noinherit"
       - run: psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/storage_stub.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/inspect_current.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/manual/production_upgrade_20260905.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/verify_production.sql
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/p0_quality.sql
 
   verify:

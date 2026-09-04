@@ -122,7 +122,7 @@ Supabase SQL Editorで`supabase/schema.sql`を実行後、開発サーバーを�
 pnpm dev
 ```
 
-既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`、`supabase/migrations/20260904_add_chatbot_markdown_sources.sql`、`supabase/migrations/20260904_add_chatbot_escalation_email.sql`、`supabase/migrations/20260904_add_chatbot_audience_access.sql`、`supabase/migrations/20260904_add_chatbot_audience_sources.sql`、`supabase/migrations/20260904_add_chatbot_daily_usage.sql`、`supabase/migrations/20260904_add_p0_quality_guards.sql`、`supabase/migrations/20260905_add_registration_and_document_guards.sql`の順に実行してください。P0マイグレーションを適用するまでは、新しいログイン・登録・予約・退会・キャンセル・権限変更・Cron処理は動作しません。実行前後の確認とロールバック判断は[DB変更運用手順](docs/operations/database-migrations.md)に従ってください。
+既存の本番SupabaseはGit内のSQLと自動同期されません。まず`supabase/inspect_current.sql`で実DBを読み取り専用確認し、貼付資料と一致する場合は`supabase/manual/production_upgrade_20260905.sql`を1回実行します。続けて`supabase/verify_production.sql`を実行してください。個別の`migrations/`は変更履歴とSupabase CLI向けに保持します。実行前後の確認とロールバック判断は[DB変更運用手順](docs/operations/database-migrations.md)と[supabase/README.md](supabase/README.md)に従ってください。
 
 `super_admin`は`/admin/chatbot`で常時テストでき、管理者・一般ユーザーの利用許可とMarkdown参照元を個別に切り替えられます。回答データはUTF-8・最大512KBの`.md`だけで管理し、同名ファイルを再度読み込むと内容を差し替えます。Geminiを使う場合はVercelへ`GEMINI_API_KEY`と`GEMINI_MODEL`を設定してください。メール通知を使う場合は、Brevoで認証済みの送信元を用意し、Vercelにも`BREVO_API_KEY`、`BREVO_SENDER_EMAIL`、`BREVO_SENDER_NAME`を設定してください。通知先は最高情報責任者が管理画面から変更できます。
 

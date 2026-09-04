@@ -179,6 +179,11 @@ create table login_rate_limits (
   updated_at timestamptz not null default now()
 );
 
+create table app_schema_migrations (
+  version text primary key,
+  applied_at timestamptz not null default now()
+);
+
 create or replace function consume_chatbot_message(p_user_id uuid, p_usage_date date)
 returns boolean
 language plpgsql
@@ -351,11 +356,13 @@ alter table faq_questions enable row level security;
 alter table chatbot_knowledge enable row level security;
 alter table chatbot_daily_usage enable row level security;
 alter table login_rate_limits enable row level security;
+alter table app_schema_migrations enable row level security;
 
 grant select, insert, update, delete on table faq_questions to service_role;
 grant select, insert, update, delete on table chatbot_knowledge to service_role;
 grant select, insert, update, delete on table chatbot_daily_usage to service_role;
 grant select, insert, update, delete on table login_rate_limits to service_role;
+grant select, insert on table app_schema_migrations to service_role;
 revoke all on function consume_chatbot_message(uuid, date) from public;
 grant execute on function consume_chatbot_message(uuid, date) to service_role;
 revoke all on function check_login_rate_limit(text) from public;

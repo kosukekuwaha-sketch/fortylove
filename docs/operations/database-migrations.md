@@ -2,17 +2,18 @@
 
 ## 適用前
 
-1. Supabase Dashboardで直近バックアップの完了時刻と復元可能期間を確認する。
-2. 対象SQLをレビューし、削除・型変更・NOT NULL追加・長時間ロックの有無を確認する。
-   `20260905_add_registration_and_document_guards.sql`の前には、`select file_path, count(*) from event_documents group by file_path having count(*) > 1;`が0件であることを確認する。
-3. Pull Requestの`database`と`verify`が成功していることを確認する。
-4. 利用が少ない時間帯を選び、実施者と確認者を決める。
+1. SQL Editorで`supabase/inspect_current.sql`を実行し、実DBの状態を保存する。
+2. Supabase Dashboardで直近バックアップの完了時刻と復元可能期間を確認する。
+3. 対象SQLをレビューし、削除・型変更・NOT NULL追加・長時間ロックの有無を確認する。
+4. Pull Requestの`database`と`verify`が成功していることを確認する。
+5. 利用が少ない時間帯を選び、実施者と確認者を決める。
 
 ## 適用
 
-1. Supabase SQL Editorで未適用のマイグレーションだけをファイル名順に実行する。
-2. エラーが出た場合は後続SQLを実行せず、出力を保存する。
-3. `20260904_add_p0_quality_guards.sql`と`20260905_add_registration_and_document_guards.sql`適用後はPostgRESTのschema reload通知まで含めて成功したことを確認する。
+1. 今回の既存環境更新では、SQL Editorで`supabase/manual/production_upgrade_20260905.sql`をファイル全体のまま実行する。
+2. エラーが出た場合は再実行せず、出力を保存する。スクリプト全体はトランザクションでロールバックされる。
+3. 成功後に`supabase/verify_production.sql`を実行し、全項目が`true`、重複パスが0件、適用バージョンが1件であることを確認する。
+4. 今後の更新では、未適用の`migrations/`だけをファイル名順に実行する。一度適用したファイルは編集しない。
 
 ## 適用後確認
 
@@ -20,6 +21,7 @@
 2. テスト利用者でログイン、予約、キャンセルを各1回確認する。
 3. `super_admin`でチャットBotのMarkdown参照元保存とプレビューを確認する。
 4. Vercel LogsとSupabase Logsに新しいエラーがないことを確認する。
+5. 棚卸し結果、実行SQL、確認SQLの結果を同じ運用記録に保存する。
 
 ## 異常時
 
