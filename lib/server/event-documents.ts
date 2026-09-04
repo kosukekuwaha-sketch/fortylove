@@ -1,40 +1,60 @@
 import { db } from "@/lib/db";
+import { EVENT_DOCUMENT_BUCKET, EVENT_DOCUMENT_MAX_BYTES, isOwnedEventDocumentUploadPath, isValidEventDocumentName } from "@/lib/event-document-policy";
 
-export const EVENT_DOCUMENT_BUCKET = "event-documents";
-const MAX_EVENT_PDF_SIZE = 15 * 1024 * 1024;
+export { EVENT_DOCUMENT_BUCKET } from "@/lib/event-document-policy";
 
-export async function replaceEventDocument(eventId: string, actorId: string, file: File) {
-  if (file.type !== "application/pdf" || !file.name.toLowerCase().endsWith(".pdf")) return "type";
-  if (file.size > MAX_EVENT_PDF_SIZE) return "size";
+async function ensureEventDocumentBucket() {
   const client = db();
   const { data: bucket } = await client.storage.getBucket(EVENT_DOCUMENT_BUCKET);
   if (!bucket) {
     const { error } = await client.storage.createBucket(EVENT_DOCUMENT_BUCKET, {
       public: false,
-      fileSizeLimit: MAX_EVENT_PDF_SIZE,
+      fileSizeLimit: EVENT_DOCUMENT_MAX_BYTES,
       allowedMimeTypes: ["application/pdf"],
     });
-    if (error) return "upload";
+    return !error;
+  }
+  const { error } = await client.storage.updateBucket(EVENT_DOCUMENT_BUCKET, {
+    public: false,
+    fileSizeLimit: EVENT_DOCUMENT_MAX_BYTES,
+    allowedMimeTypes: ["application/pdf"],
+  });
+  return !error;
+}
+
+export async function createEventDocumentUpload(actorId: string) {
+  if (!await ensureEventDocumentBucket()) return null;
+  const path = `uploads/${actorId}/${crypto.randomUUID()}.pdf`;
+  const { data, error } = await db().storage.from(EVENT_DOCUMENT_BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return null;
+  return { path, signedUrl: data.signedUrl };
+}
+
+export async function attachUploadedEventDocument(eventId: string, actorId: string, path: string, fileName: string) {
+  if (!isOwnedEventDocumentUploadPath(path, actorId) || !isValidEventDocumentName(fileName)) return "upload";
+  const client = db();
+  const { data: uploaded, error: infoError } = await client.storage.from(EVENT_DOCUMENT_BUCKET).info(path);
+  if (infoError || !uploaded || uploaded.contentType !== "application/pdf" || !uploaded.size || uploaded.size > EVENT_DOCUMENT_MAX_BYTES) {
+    return uploaded?.size && uploaded.size > EVENT_DOCUMENT_MAX_BYTES ? "size" : "upload";
   }
   const { data: existing } = await client.from("event_documents").select("file_path").eq("event_id", eventId).maybeSingle();
-  const path = `${eventId}/${crypto.randomUUID()}.pdf`;
-  const { error: uploadError } = await client.storage.from(EVENT_DOCUMENT_BUCKET).upload(path, file, { contentType: "application/pdf" });
-  if (uploadError) return "upload";
   const { error: databaseError } = await client.from("event_documents").upsert({
     event_id: eventId,
     file_path: path,
-    file_name: file.name,
+    file_name: fileName,
     updated_by: actorId,
     updated_at: new Date().toISOString(),
   }, { onConflict: "event_id" });
-  if (databaseError) {
-    await client.storage.from(EVENT_DOCUMENT_BUCKET).remove([path]);
-    return "database";
-  }
+  if (databaseError) return "database";
   if (existing?.file_path && existing.file_path !== path) {
     await client.storage.from(EVENT_DOCUMENT_BUCKET).remove([existing.file_path]);
   }
   return null;
+}
+
+export async function removeUploadedEventDocument(path: string, actorId: string) {
+  if (!isOwnedEventDocumentUploadPath(path, actorId)) return;
+  await db().storage.from(EVENT_DOCUMENT_BUCKET).remove([path]);
 }
 
 export async function removeEventDocument(eventId: string) {

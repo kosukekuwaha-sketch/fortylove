@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { REGISTRATION_DRAFT_KEY } from "./registration-draft";
+import { parseRegistrationDraft, REGISTRATION_DRAFT_KEY } from "@/lib/registration-draft";
 import { visibleDepartment } from "@/lib/profile";
 
 const schools: Record<string, Record<string, string[]>> = {
@@ -53,7 +53,7 @@ export function UniversityFields({
     if (!restoreDraft) return;
     const saved = sessionStorage.getItem(REGISTRATION_DRAFT_KEY);
     if (!saved) return;
-    const values = JSON.parse(saved) as Record<string, string>;
+    const values = parseRegistrationDraft(saved);
     setUniversity(values.university_choice ?? "");
     setFaculty(values.faculty_choice ?? "");
     setDepartment(visibleDepartment(values.department_choice));

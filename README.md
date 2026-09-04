@@ -64,6 +64,12 @@
 
 2026年9月4日の追補では、登録フォームのパスワード等をWeb Storageへ保存しないことを`P0`、画面・Next.js・Server Action・Supabase Storage間でPDFアップロード上限を一致させることを`P1`として追加しています。変更時は、文書内の受入条件とDefinition of Doneに対応する自動テストおよび運用手順も併せて更新します。
 
+### 2026-09-04追補の実装状況
+
+- `SEC-AUTH-004`：登録下書きは明示的なallowlistに含まれるプロフィール項目だけを`sessionStorage`へ保存します。パスワード、トークン、Secret、未許可項目は保存せず、旧形式の下書きに含まれる場合も次回読込時に削除します。
+- `FR-DOC-002`：イベントPDFは画面・Client検証・署名URL発行API・Supabase Storageで一律15MB以下とします。[Vercel Functionsの4.5MB payload上限](https://vercel.com/docs/functions/limitations#request-body-size)を回避するため、PDF本体はServer Actionを経由せず、管理者認証後に発行した一時URLを使ってブラウザから非公開のSupabase Storageへ直接アップロードします。
+- 境界条件は`lib/registration-draft.test.ts`と`lib/event-document-policy.test.ts`で検証します。上限ちょうどのPDFを許可し、1byte超過・MIME type不一致・不正パスを拒否します。
+
 ## ローカルセットアップ
 
 必要環境はNode.js 22以上、pnpm 11です。
@@ -148,4 +154,4 @@ Markdown参照元の保存時に設定列がない旨が表示された場合は
 
 ## 現在のテスト範囲
 
-パスワードポリシーなど副作用のないロジックから単体テストを追加しています。予約の同時実行、権限制御、主要画面の操作については今後、Supabaseテスト環境を使った統合テストとE2Eテストを追加する余地があります。
+パスワードポリシー、登録下書きの機密情報除外、イベントPDFのサイズ・形式・アップロードパス、チャットBotの回答判定など、副作用のないロジックを単体テストしています。予約の同時実行、権限制御、PDFの実アップロードから一般ユーザー閲覧までの経路については、Supabaseテスト環境を使ったIntegration TestとE2Eテストを追加する余地があります。

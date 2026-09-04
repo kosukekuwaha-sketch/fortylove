@@ -1,28 +1,31 @@
 "use client";
 
 import { useEffect } from "react";
+import { parseRegistrationDraft, REGISTRATION_DRAFT_KEY, registrationDraftFromFormData } from "@/lib/registration-draft";
 
-export const REGISTRATION_DRAFT_KEY = "courtside_registration_draft";
+export { REGISTRATION_DRAFT_KEY } from "@/lib/registration-draft";
 
 export function RegistrationDraftKeeper() {
   useEffect(() => {
     const form = document.querySelector<HTMLFormElement>("#registration-form");
     if (!form) return;
     const saved = sessionStorage.getItem(REGISTRATION_DRAFT_KEY);
+    const values = parseRegistrationDraft(saved);
     if (saved) {
-      const values = JSON.parse(saved) as Record<string, string>;
+      // 旧形式にpassword等が含まれていても、最初の読込時にallowlist形式へ置き換える。
+      sessionStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify(values));
       requestAnimationFrame(() => {
         for (const element of Array.from(form.elements)) {
           if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) continue;
           if (!element.name || element.type === "hidden" || element.name.endsWith("_choice") || element.name.startsWith("custom_")) continue;
-          if (values[element.name] !== undefined) element.value = values[element.name];
+          const restoredValue = Reflect.get(values, element.name);
+          if (typeof restoredValue === "string") element.value = restoredValue;
         }
       });
     }
     const save = () => {
-      const values: Record<string, string> = {};
-      new FormData(form).forEach((value, key) => { if (typeof value === "string") values[key] = value; });
-      sessionStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify(values));
+      const safeValues = registrationDraftFromFormData(new FormData(form));
+      sessionStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify(safeValues));
     };
     form.addEventListener("input", save);
     form.addEventListener("change", save);

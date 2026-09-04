@@ -3,7 +3,9 @@ import { createEvent, deleteEvent } from "@/app/event-actions";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { AdminEventEdit } from "@/components/admin-event-edit";
+import { EventDocumentUploadInput } from "@/components/event-document-upload-input";
 import { toTokyoDatetimeLocal, tokyoDateKey, tokyoParts, tokyoTimeLabel } from "@/lib/datetime";
+import { EVENT_DOCUMENT_MAX_LABEL } from "@/lib/event-document-policy";
 import { visibleDepartment } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
@@ -46,9 +48,9 @@ export default async function Events({ searchParams }: { searchParams: Promise<{
     {deleted && <div className="success-message">イベントを削除しました。</div>}
     {updated && <div className="success-message">イベントの内容を変更しました。</div>}
     {attendance_updated && <div className="success-message">参加状況を更新しました。</div>}
-    {error && <div className="alert">{error === "capacity" ? "定員は現在の予約人数より少なくできません。" : error === "update" || error === "create" ? "イベントを保存できませんでした。日時や入力内容をご確認ください。" : error === "document-type" ? "PDF形式のファイルを選択してください。" : error === "document-size" ? "PDFは15MB以下にしてください。" : error?.startsWith("document-") ? "PDFを保存できませんでした。SupabaseのPDF用SQLを実行してから、もう一度お試しください。" : "イベントを削除できませんでした。もう一度お試しください。"}</div>}
+    {error && <div className="alert">{error === "capacity" ? "定員は現在の予約人数より少なくできません。" : error === "update" || error === "create" ? "イベントを保存できませんでした。日時や入力内容をご確認ください。" : error === "document-type" ? "PDF形式のファイルを選択してください。" : error === "document-size" ? `PDFは${EVENT_DOCUMENT_MAX_LABEL}以下にしてください。` : error === "document-pending" ? "PDFのアップロード完了を待ってから保存してください。" : error?.startsWith("document-") ? "PDFを保存できませんでした。通信状態とSupabaseのStorage設定を確認して、もう一度お試しください。" : "イベントを削除できませんでした。もう一度お試しください。"}</div>}
 
-    <details className="create-panel"><summary>＋ 新しい予定を作成</summary><form action={createEvent} className="grid-form"><label className="full">種別<select name="event_type" defaultValue="tennis"><option value="tennis">テニス</option><option value="event">イベント</option></select></label><label>タイトル<input name="title" required /></label><label>場所<input name="location" required /></label><label>開始日時<input type="datetime-local" name="starts_at" required /></label><label>終了日時<input type="datetime-local" name="ends_at" required /></label><label>定員<input type="number" name="capacity" min="1" required /></label><label className="full">説明<textarea name="description" /></label><label className="full">関連資料（PDF・任意・15MBまで）<input type="file" name="document" accept="application/pdf,.pdf" /><small>アップロードすると一般ユーザーがイベント画面内で閲覧できます。</small></label><button className="primary full">予定を作成</button></form></details>
+    <details className="create-panel"><summary>＋ 新しい予定を作成</summary><form action={createEvent} className="grid-form"><label className="full">種別<select name="event_type" defaultValue="tennis"><option value="tennis">テニス</option><option value="event">イベント</option></select></label><label>タイトル<input name="title" required /></label><label>場所<input name="location" required /></label><label>開始日時<input type="datetime-local" name="starts_at" required /></label><label>終了日時<input type="datetime-local" name="ends_at" required /></label><label>定員<input type="number" name="capacity" min="1" required /></label><label className="full">説明<textarea name="description" /></label><EventDocumentUploadInput optional /><button className="primary full">予定を作成</button></form></details>
 
     <nav className="event-status-tabs" aria-label="イベントの表示切り替え">
       <Link className={view === "upcoming" ? "active" : ""} href="/admin/events?view=upcoming">開催予定</Link>
