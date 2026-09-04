@@ -85,6 +85,8 @@ pnpm dev
 
 既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`、`supabase/migrations/20260904_add_chatbot_markdown_sources.sql`、`supabase/migrations/20260904_add_chatbot_escalation_email.sql`、`supabase/migrations/20260904_add_chatbot_audience_access.sql`、`supabase/migrations/20260904_add_chatbot_audience_sources.sql`、`supabase/migrations/20260904_add_chatbot_daily_usage.sql`の順にSupabase SQL Editorで実行してください。`super_admin`は`/admin/chatbot`で常時テストでき、管理者・一般ユーザーの利用許可とMarkdown参照元を個別に切り替えられます。回答データはUTF-8・最大512KBの`.md`だけで管理し、同名ファイルを再度読み込むと内容を差し替えます。Geminiを使う場合はVercelへ`GEMINI_API_KEY`と`GEMINI_MODEL`を設定してください。メール通知を使う場合は、Brevoで認証済みの送信元を用意し、Vercelにも`BREVO_API_KEY`、`BREVO_SENDER_EMAIL`、`BREVO_SENDER_NAME`を設定してください。通知先は最高情報責任者が管理画面から変更できます。
 
+Markdown参照元の保存時に設定列がない旨が表示された場合は、`supabase/migrations/20260904_add_chatbot_audience_sources.sql`をSupabase SQL Editorで再実行してください。このSQLは再実行可能で、PostgRESTのスキーマキャッシュも更新します。
+
 ## 初期管理者
 
 `supabase/seed.sql`のコメントに従い、名前、パスワード、所属を変更して実行します。初期投入後は管理画面から権限を管理してください。平文パスワードはデータベースへ保存されません。

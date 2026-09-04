@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { formText, requireSuperAdmin } from "@/lib/server/action-context";
 import { parseMarkdownKnowledge } from "@/lib/markdown-knowledge";
+import { isMissingColumnError } from "@/lib/supabase-errors";
 
 const escalationEmailSchema = z.union([z.literal(""), z.string().email().max(254)]);
 
@@ -32,11 +33,19 @@ export async function updateChatbotAudienceSources(formData: FormData) {
   if (sourceNames.length) {
     const { data: available, error: sourceError } = await client.from("chatbot_knowledge").select("source_name").eq("source_type", "markdown").in("source_name", sourceNames);
     const availableNames = new Set((available ?? []).map((item) => item.source_name));
-    if (sourceError || sourceNames.some((name) => !availableNames.has(name))) redirect("/admin/chatbot?error=sources-validation");
+    if (sourceError) {
+      console.error("Failed to verify chatbot Markdown sources", { code: sourceError.code, message: sourceError.message, details: sourceError.details });
+      redirect("/admin/chatbot?error=sources-read");
+    }
+    if (sourceNames.some((name) => !availableNames.has(name))) redirect("/admin/chatbot?error=sources-validation");
   }
   const updates = audience === "admin" ? { chatbot_admin_sources: sourceNames } : { chatbot_member_sources: sourceNames };
   const { error } = await client.from("app_settings").update(updates).eq("id", 1);
-  if (error) redirect("/admin/chatbot?error=sources-save");
+  if (error) {
+    console.error("Failed to save chatbot Markdown sources", { code: error.code, message: error.message, details: error.details });
+    const missingColumns = ["chatbot_admin_sources", "chatbot_member_sources"];
+    redirect(`/admin/chatbot?error=${isMissingColumnError(error, missingColumns) ? "sources-migration" : "sources-save"}`);
+  }
   await client.from("audit_logs").insert({ actor_id: user.id, action: `chatbot.sources.${audience}.update`, target_type: "app_settings" });
   redirect(`/admin/chatbot?sources_updated=${audience}`);
 }

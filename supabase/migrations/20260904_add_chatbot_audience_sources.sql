@@ -2,3 +2,6 @@
 alter table public.app_settings
   add column if not exists chatbot_admin_sources text[] not null default '{}',
   add column if not exists chatbot_member_sources text[] not null default '{}';
+
+-- 既にSQLを実行済みでも、PostgRESTのスキーマキャッシュを確実に更新する。
+notify pgrst, 'reload schema';
