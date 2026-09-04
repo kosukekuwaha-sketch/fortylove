@@ -1,4 +1,4 @@
-import { answerSubmittedQuestion, createFaq, createFaqCategory, deleteFaq, deleteFaqCategory, dismissSubmittedQuestion, updateFaq } from "@/app/faq-actions";
+import { answerSubmittedQuestion, createFaq, createFaqCategory, deleteFaq, deleteFaqCategory, dismissSubmittedQuestion, updateFaq } from "@/app/server-actions/faq-actions";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { db } from "@/lib/db";
 

@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { X } from "lucide-react";
-import { updateEvent } from "@/app/event-actions";
+import { updateEvent } from "@/app/server-actions/event-actions";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { EventDocumentUploadInput } from "@/components/event-document-upload-input";
 

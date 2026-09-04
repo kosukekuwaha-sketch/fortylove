@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { formText, requireSuperAdmin } from "@/lib/server/action-context";
+import { requireSuperAdmin } from "@/lib/server/action-context";
+import { formText } from "@/lib/server/form-data";
 
 export async function updateRecruitingStatus(formData: FormData) {
   const user = await requireSuperAdmin();

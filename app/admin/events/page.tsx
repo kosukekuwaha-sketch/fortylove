@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createEvent, deleteEvent } from "@/app/event-actions";
+import { createEvent, deleteEvent } from "@/app/server-actions/event-actions";
 import { db } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { AdminEventEdit } from "@/components/admin-event-edit";

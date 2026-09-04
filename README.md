@@ -46,13 +46,19 @@
 - Vitest（単体テスト）
 - GitHub Actions（型検査・テスト・本番ビルド）
 
-サーバー処理は責務別に分割しています。
+サーバー処理は`app/server-actions/`へ集約し、機能領域ごとに分割しています。既存の会員画面向けimportは互換用の`app/actions.ts`で維持します。
 
-- `app/actions.ts`: 認証、プロフィール、会員・権限管理
-- `app/event-actions.ts`: イベント、参加状況、PDF操作
-- `app/faq-actions.ts`: FAQ・カテゴリ操作
-- `app/chatbot-actions.ts`: チャットBot回答データ操作
-- `lib/server/`: Server Action共通処理と外部ストレージ処理
+- `app/server-actions/auth-actions.ts`: ログイン、登録、ログアウト
+- `app/server-actions/member-actions.ts`: 予約、キャンセル、プロフィール、本人退会
+- `app/server-actions/admin-member-actions.ts`: 権限、パスワード、入会・退会者管理
+- `app/server-actions/event-actions.ts`: イベント、参加状況、PDF操作
+- `app/server-actions/faq-actions.ts`: FAQ・カテゴリ操作
+- `app/server-actions/chatbot-actions.ts`: チャットBot回答データ操作
+- `app/server-actions/settings-actions.ts`: 新歓受付設定
+- `lib/server/action-context.ts`: 管理権限の確認
+- `lib/server/avatar-service.ts`: アバターの保存・後処理
+- `lib/server/member-account-service.ts`: 原子的な退会処理の呼び出し
+- `lib/server/form-data.ts`: FormDataの共通読取り
 
 ## 品質要件
 

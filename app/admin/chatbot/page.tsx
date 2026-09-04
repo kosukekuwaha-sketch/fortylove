@@ -1,7 +1,7 @@
 import { Bot, Database, FileText, Mail, ShieldCheck, Sparkles, Upload, UsersRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { deleteChatbotMarkdownSource, importChatbotMarkdown, updateChatbotAudienceAccess, updateChatbotAudienceSources, updateChatbotEscalationEmail } from "@/app/chatbot-actions";
+import { deleteChatbotMarkdownSource, importChatbotMarkdown, updateChatbotAudienceAccess, updateChatbotAudienceSources, updateChatbotEscalationEmail } from "@/app/server-actions/chatbot-actions";
 import { ChatbotPreview } from "@/components/chatbot-preview";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { getSession } from "@/lib/auth";
