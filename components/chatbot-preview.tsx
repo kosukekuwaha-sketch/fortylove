@@ -25,7 +25,8 @@ type ChatbotResponse = {
 export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview" | "admin" | "member"; onClose?: () => void }) {
   const titleId = useId();
   const inputId = useId();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const [inputName, setInputName] = useState("fortylove-chatbot-question");
   const [testAudience, setTestAudience] = useState<"admin" | "member">("member");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([{
@@ -39,8 +40,17 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
   const [escalating, setEscalating] = useState(false);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const frame = requestAnimationFrame(() => {
+      const container = messagesRef.current;
+      if (!container) return;
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [messages, sending, escalating]);
+
+  useEffect(() => {
+    setInputName(`fortylove-chatbot-question-${crypto.randomUUID()}`);
+  }, []);
 
   async function requestAnswer(displayText: string, requestMessage = displayText, choiceId?: string) {
     if (!displayText.trim() || sending) return;
@@ -137,7 +147,7 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
         <button type="button" className={testAudience === "member" ? "active" : ""} onClick={() => changeTestAudience("member")}>一般ユーザー</button>
       </div>
     </div>}
-    <div className="chatbot-messages" aria-live="polite">
+    <div ref={messagesRef} className="chatbot-messages" aria-live="polite">
       {messages.map((item, index) => <div className={`chat-message ${item.role}`} key={`${item.role}-${index}`}>
         <p>{item.text}</p>
         {item.source && <small>根拠：{item.source}</small>}
@@ -162,18 +172,21 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
         </div>}
       </div>)}
       {sending && <div className="chat-message bot"><p>回答を確認しています…</p></div>}
-      <div ref={messagesEndRef} />
     </div>
     <form onSubmit={send} autoComplete="off">
       <label className="sr-only" htmlFor={inputId}>質問</label>
       <input
         id={inputId}
-        name="fortylove-chatbot-question"
+        name={inputName}
         value={message}
         onChange={(event) => setMessage(event.target.value)}
         maxLength={500}
         placeholder={pendingChoices.length ? "番号でも選べます（例：2）" : "例：次の新歓はいつ？"}
-        autoComplete="off"
+        autoComplete="new-password"
+        aria-autocomplete="none"
+        data-1p-ignore="true"
+        data-lpignore="true"
+        data-form-type="other"
       />
       <button type="submit" disabled={sending || !message.trim()} aria-label="送信"><Send /></button>
     </form>
