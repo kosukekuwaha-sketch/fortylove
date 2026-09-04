@@ -3,12 +3,39 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fortylove_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fortylove_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: fortylove_test
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql -v ON_ERROR_STOP=1 -c "create role service_role noinherit"
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/p0_quality.sql
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -29,3 +56,4 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-key
           SESSION_SECRET: ci-only-session-secret-at-least-32-characters
+          CRON_SECRET: ci-only-cron-secret

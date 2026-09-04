@@ -10,39 +10,7 @@ export async function GET(request: NextRequest) {
   }
 
   const year = new Date().getUTCFullYear();
-  const action = `grade.promote.${year}`;
-  const client = db();
-  const { data: completed } = await client
-    .from("audit_logs")
-    .select("id")
-    .eq("action", action)
-    .maybeSingle();
-
-  if (completed) {
-    return NextResponse.json({ ok: true, skipped: true });
-  }
-
-  const { data: users, error } = await client
-    .from("users")
-    .select("id,grade")
-    .eq("role", "member")
-    .lt("grade", 5);
-
+  const { data, error } = await db().rpc("promote_member_grades", { p_year: year });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  // 実行記録を先に残し、同じ年の再実行で学年が二重に進むことを防ぐ。
-  const { error: auditError } = await client
-    .from("audit_logs")
-    .insert({ action, target_type: "users" });
-  if (auditError) return NextResponse.json({ error: auditError.message }, { status: 500 });
-
-  const results = await Promise.all(
-    (users ?? []).map((user) =>
-      client.from("users").update({ grade: Math.min(Number(user.grade) + 1, 5) }).eq("id", user.id),
-    ),
-  );
-  const updateError = results.find((result) => result.error)?.error;
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
-
-  return NextResponse.json({ ok: true, updated: users?.length ?? 0 });
+  return NextResponse.json({ ok: true, ...(data as { updated: number; skipped: boolean }) });
 }
