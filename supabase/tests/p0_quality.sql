@@ -73,6 +73,17 @@ $$;
 
 do $$
 declare
+  v_key text := repeat('b', 64);
+begin
+  perform clear_login_rate_limit(v_key);
+  if not consume_request_rate_limit(v_key, 3600, 5, 3600) then raise exception 'first registration request was blocked'; end if;
+  perform consume_request_rate_limit(v_key, 3600, 5, 3600) from generate_series(1, 4);
+  if consume_request_rate_limit(v_key, 3600, 5, 3600) then raise exception 'registration limit was not enforced'; end if;
+end;
+$$;
+
+do $$
+declare
   v_user uuid;
 begin
   insert into users (name, password_hash) values ('P1 session', 'integration-test-hash') returning id into v_user;
@@ -80,6 +91,32 @@ begin
   if (select session_version from users where id = v_user) <> 2 then raise exception 'role update did not invalidate sessions'; end if;
   if not replace_user_password(v_user, 'integration-test-replacement-hash') then raise exception 'password update failed'; end if;
   if (select session_version from users where id = v_user) <> 3 then raise exception 'password update did not invalidate sessions'; end if;
+end;
+$$;
+
+do $$
+declare
+  v_actor uuid;
+  v_event_a uuid;
+  v_event_b uuid;
+  v_path text := 'events/shared/document.pdf';
+begin
+  insert into users (name, password_hash, role) values ('P1 document actor', 'integration-test-hash', 'admin') returning id into v_actor;
+  insert into events (title, starts_at, ends_at, location, capacity)
+    values ('P1 document A', now() + interval '1 day', now() + interval '1 day 1 hour', 'court', 10)
+    returning id into v_event_a;
+  insert into events (title, starts_at, ends_at, location, capacity)
+    values ('P1 document B', now() + interval '2 days', now() + interval '2 days 1 hour', 'court', 10)
+    returning id into v_event_b;
+  insert into event_documents (event_id, file_path, file_name, updated_by)
+    values (v_event_a, v_path, 'a.pdf', v_actor);
+  begin
+    insert into event_documents (event_id, file_path, file_name, updated_by)
+      values (v_event_b, v_path, 'b.pdf', v_actor);
+    raise exception 'duplicate event document path was accepted';
+  exception when unique_violation then
+    null;
+  end;
 end;
 $$;
 

@@ -4,6 +4,7 @@
 
 1. Supabase Dashboardで直近バックアップの完了時刻と復元可能期間を確認する。
 2. 対象SQLをレビューし、削除・型変更・NOT NULL追加・長時間ロックの有無を確認する。
+   `20260905_add_registration_and_document_guards.sql`の前には、`select file_path, count(*) from event_documents group by file_path having count(*) > 1;`が0件であることを確認する。
 3. Pull Requestの`database`と`verify`が成功していることを確認する。
 4. 利用が少ない時間帯を選び、実施者と確認者を決める。
 
@@ -11,7 +12,7 @@
 
 1. Supabase SQL Editorで未適用のマイグレーションだけをファイル名順に実行する。
 2. エラーが出た場合は後続SQLを実行せず、出力を保存する。
-3. `20260904_add_p0_quality_guards.sql`適用後はPostgRESTのschema reload通知まで含めて成功したことを確認する。
+3. `20260904_add_p0_quality_guards.sql`と`20260905_add_registration_and_document_guards.sql`適用後はPostgRESTのschema reload通知まで含めて成功したことを確認する。
 
 ## 適用後確認
 

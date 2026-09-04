@@ -31,6 +31,7 @@
 - 曖昧な質問は最大3件の候補ボタンを表示し、ボタンまたは`1`・`2`・`3`入力で選択
 - 「新歓はいつまで」など募集期間の質問はイベント日時よりMarkdown FAQを優先
 - 新着回答への自動スクロールと、チャット入力欄のブラウザ入力履歴抑制
+- 個人情報を入力しない旨と、必要時に質問・Markdown内容をGoogle Geminiへ送信する旨をチャット画面に表示
 - 管理者・一般ユーザーは1人1日10件まで（超過時は有人対応へ案内）
 - Markdown資料を見出しごとに回答データへ反映し、同名ファイルの再読込で差し替え（最高情報責任者のみ）
 - 回答不能時の有人対応確認（「はい」の場合のみ管理者の対応待ちへ登録）
@@ -77,7 +78,7 @@
 ### 2026-09-04追補の実装状況
 
 - `SEC-AUTH-004`：登録下書きは明示的なallowlistに含まれるプロフィール項目だけを`sessionStorage`へ保存します。パスワード、トークン、Secret、未許可項目は保存せず、旧形式の下書きに含まれる場合も次回読込時に削除します。
-- `FR-DOC-002`：イベントPDFは画面・Client検証・署名URL発行API・Supabase Storageで一律15MB以下とします。[Vercel Functionsの4.5MB payload上限](https://vercel.com/docs/functions/limitations#request-body-size)を回避するため、PDF本体はServer Actionを経由せず、管理者認証後に発行した一時URLを使ってブラウザから非公開のSupabase Storageへ直接アップロードします。
+- `FR-DOC-002`：イベントPDFは画面・Client検証・署名URL発行API・Supabase Storageで一律15MB以下とします。[Vercel Functionsの4.5MB payload上限](https://vercel.com/docs/functions/limitations#request-body-size)を回避するため、PDF本体はServer Actionを経由せず、管理者認証後に発行した一時URLを使ってブラウザから非公開のSupabase Storageへ直接アップロードします。保存確定時にstagingからイベント固有パスへ移動し、同一Storageパスの複数イベント参照をDB制約で防ぎます。
 - 境界条件は`lib/registration-draft.test.ts`と`lib/event-document-policy.test.ts`で検証します。上限ちょうどのPDFを許可し、1byte超過・MIME type不一致・不正パスを拒否します。
 
 ### P0・P1品質改善の実装状況
@@ -86,6 +87,7 @@
 - 予約キャンセルは`cancel_event_reservation` RPCでイベント行をロックし、DB時刻を基準に開始2時間前の締切を判定します。
 - 退会は台帳保存・監査ログ・ユーザー削除を`archive_and_delete_member` RPCの1トランザクションで実行します。Storageのアバター削除はコミット後の後処理とし、失敗時はサーバーログへ記録します。
 - ログイン失敗は接続元とログイン名をHMAC-SHA256化した識別子で集計し、10分間に5回失敗すると10分間停止します。名前とIPアドレスそのものはRate Limitテーブルや監査ログへ保存しません。
+- 新規登録は接続元をHMAC-SHA256化した識別子で集計し、1時間に5回までに制限します。上限超過は1時間停止し、登録フォームを使ったBot・大量bcrypt処理を抑制します。
 - セッションには`session_version`を含め、リクエストごとにDBと照合します。管理者が権限またはパスワードを変更すると既存セッションは即時無効になります。
 - 年次学年更新は`promote_member_grades` RPCのトランザクションとadvisory lockで排他・再実行安全にしています。同一年の再実行では更新をスキップします。
 - CIはTypeScript・Vitest・本番ビルドに加え、PostgreSQL 17上でスキーマと`supabase/tests/p0_quality.sql`を検証します。DependabotはnpmとGitHub Actionsを週次確認します。
@@ -120,7 +122,7 @@ Supabase SQL Editorで`supabase/schema.sql`を実行後、開発サーバーを�
 pnpm dev
 ```
 
-既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`、`supabase/migrations/20260904_add_chatbot_markdown_sources.sql`、`supabase/migrations/20260904_add_chatbot_escalation_email.sql`、`supabase/migrations/20260904_add_chatbot_audience_access.sql`、`supabase/migrations/20260904_add_chatbot_audience_sources.sql`、`supabase/migrations/20260904_add_chatbot_daily_usage.sql`の順に実行し、最後に`supabase/migrations/20260904_add_p0_quality_guards.sql`を実行してください。最後のマイグレーションを適用するまでは、新しいログイン・予約・退会・キャンセル・権限変更・Cron処理は動作しません。実行前後の確認とロールバック判断は[DB変更運用手順](docs/operations/database-migrations.md)に従ってください。
+既存環境へチャットBot管理機能を追加する場合は、`supabase/migrations/20260903_add_chatbot_knowledge.sql`、`supabase/migrations/20260904_add_chatbot_markdown_sources.sql`、`supabase/migrations/20260904_add_chatbot_escalation_email.sql`、`supabase/migrations/20260904_add_chatbot_audience_access.sql`、`supabase/migrations/20260904_add_chatbot_audience_sources.sql`、`supabase/migrations/20260904_add_chatbot_daily_usage.sql`、`supabase/migrations/20260904_add_p0_quality_guards.sql`、`supabase/migrations/20260905_add_registration_and_document_guards.sql`の順に実行してください。P0マイグレーションを適用するまでは、新しいログイン・登録・予約・退会・キャンセル・権限変更・Cron処理は動作しません。実行前後の確認とロールバック判断は[DB変更運用手順](docs/operations/database-migrations.md)に従ってください。
 
 `super_admin`は`/admin/chatbot`で常時テストでき、管理者・一般ユーザーの利用許可とMarkdown参照元を個別に切り替えられます。回答データはUTF-8・最大512KBの`.md`だけで管理し、同名ファイルを再度読み込むと内容を差し替えます。Geminiを使う場合はVercelへ`GEMINI_API_KEY`と`GEMINI_MODEL`を設定してください。メール通知を使う場合は、Brevoで認証済みの送信元を用意し、Vercelにも`BREVO_API_KEY`、`BREVO_SENDER_EMAIL`、`BREVO_SENDER_NAME`を設定してください。通知先は最高情報責任者が管理画面から変更できます。
 
@@ -167,7 +169,7 @@ Markdown参照元の保存時に設定列がない旨が表示された場合は
 
 ## 定期処理
 
-`vercel.json`のCronが毎年4月1日に`/api/cron/promote-grades`を実行し、対象ユーザーの学年を更新します。エンドポイントは`Authorization: Bearer <CRON_SECRET>`だけを受け付けます。本番では実行後にVercel Logsと`audit_logs`の`grade.promote.<年>`を確認してください。
+`vercel.json`のCronは、毎年4月1日に`/api/cron/promote-grades`で対象ユーザーの学年を更新し、毎日3時（日本時間）に`/api/cron/cleanup-event-uploads`で24時間を超えた未確定PDFを削除します。どちらも`Authorization: Bearer <CRON_SECRET>`だけを受け付けます。本番では実行後にVercel Logsを確認し、学年更新では`audit_logs`の`grade.promote.<年>`も確認してください。
 
 ## セキュリティ上の注意
 

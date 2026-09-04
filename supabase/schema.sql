@@ -40,7 +40,7 @@ create index events_starts_at_idx on events (starts_at);
 
 create table event_documents (
   event_id uuid primary key references events(id) on delete cascade,
-  file_path text not null,
+  file_path text not null unique,
   file_name text not null,
   updated_by uuid references users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -225,6 +225,27 @@ $$;
 create or replace function clear_login_rate_limit(p_key_hash text)
 returns void language sql security definer set search_path = public as $$ delete from login_rate_limits where key_hash = p_key_hash; $$;
 
+create or replace function consume_request_rate_limit(p_key_hash text, p_window_seconds integer, p_max_requests integer, p_block_seconds integer)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare v_limit login_rate_limits%rowtype;
+begin
+  if char_length(p_key_hash) <> 64 or p_window_seconds < 1 or p_max_requests < 1 or p_block_seconds < 1 then raise exception 'invalid request rate limit arguments'; end if;
+  insert into login_rate_limits (key_hash, failure_count, window_started_at, updated_at) values (p_key_hash, 0, now(), now()) on conflict (key_hash) do nothing;
+  select * into v_limit from login_rate_limits where key_hash = p_key_hash for update;
+  if v_limit.blocked_until > now() then return false; end if;
+  if v_limit.window_started_at <= now() - make_interval(secs => p_window_seconds) then
+    update login_rate_limits set failure_count = 1, window_started_at = now(), blocked_until = null, updated_at = now() where key_hash = p_key_hash;
+    return true;
+  end if;
+  if v_limit.failure_count >= p_max_requests then
+    update login_rate_limits set blocked_until = now() + make_interval(secs => p_block_seconds), updated_at = now() where key_hash = p_key_hash;
+    return false;
+  end if;
+  update login_rate_limits set failure_count = failure_count + 1, updated_at = now() where key_hash = p_key_hash;
+  return true;
+end;
+$$;
+
 create or replace function reserve_event(p_user_id uuid, p_event_id uuid)
 returns text language plpgsql security definer set search_path = public as $$
 declare v_capacity integer; v_starts_at timestamptz; v_existing_status reservation_status; v_reserved_count integer;
@@ -340,6 +361,7 @@ grant execute on function consume_chatbot_message(uuid, date) to service_role;
 revoke all on function check_login_rate_limit(text) from public;
 revoke all on function record_login_failure(text, integer, integer, integer) from public;
 revoke all on function clear_login_rate_limit(text) from public;
+revoke all on function consume_request_rate_limit(text, integer, integer, integer) from public;
 revoke all on function reserve_event(uuid, uuid) from public;
 revoke all on function archive_and_delete_member(uuid, uuid, text) from public;
 revoke all on function cancel_event_reservation(uuid, uuid) from public;
@@ -350,6 +372,7 @@ revoke all on function promote_member_grades(integer) from public;
 grant execute on function check_login_rate_limit(text) to service_role;
 grant execute on function record_login_failure(text, integer, integer, integer) to service_role;
 grant execute on function clear_login_rate_limit(text) to service_role;
+grant execute on function consume_request_rate_limit(text, integer, integer, integer) to service_role;
 grant execute on function reserve_event(uuid, uuid) to service_role;
 grant execute on function archive_and_delete_member(uuid, uuid, text) to service_role;
 grant execute on function cancel_event_reservation(uuid, uuid) to service_role;

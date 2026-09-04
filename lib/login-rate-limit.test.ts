@@ -12,9 +12,11 @@ describe("login rate limit", () => {
   it("separates scopes and values without exposing their source", () => {
     const addressKey = loginRateLimitKey("address", "203.0.113.10", secret);
     const identityKey = loginRateLimitKey("identity", "test", secret);
+    const registrationKey = loginRateLimitKey("registration-address", "203.0.113.10", secret);
     expect(addressKey).toMatch(/^[a-f0-9]{64}$/);
     expect(addressKey).not.toContain("203.0.113.10");
     expect(addressKey).not.toBe(identityKey);
+    expect(addressKey).not.toBe(registrationKey);
   });
 
   it("uses the first trusted proxy address and has a stable fallback", () => {

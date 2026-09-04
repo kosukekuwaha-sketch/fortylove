@@ -11,6 +11,9 @@ import {
   LOGIN_BLOCK_SECONDS,
   LOGIN_MAX_FAILURES,
   LOGIN_WINDOW_SECONDS,
+  REGISTRATION_BLOCK_SECONDS,
+  REGISTRATION_MAX_ATTEMPTS,
+  REGISTRATION_WINDOW_SECONDS,
   loginRateLimitKey,
 } from "@/lib/login-rate-limit";
 import { isValidNewPassword } from "@/lib/password-policy";
@@ -87,6 +90,24 @@ export async function login(formData: FormData) {
 
 export async function register(formData: FormData) {
   const client = db();
+  const requestHeaders = await headers();
+  const address = clientAddress(requestHeaders.get("x-forwarded-for"), requestHeaders.get("x-real-ip"));
+  const registrationKey = loginRateLimitKey("registration-address", address, process.env.SESSION_SECRET ?? "");
+  const { data: registrationAllowed, error: rateLimitError } = await client.rpc("consume_request_rate_limit", {
+    p_key_hash: registrationKey,
+    p_window_seconds: REGISTRATION_WINDOW_SECONDS,
+    p_max_requests: REGISTRATION_MAX_ATTEMPTS,
+    p_block_seconds: REGISTRATION_BLOCK_SECONDS,
+  });
+  if (rateLimitError) {
+    console.error("Registration rate-limit database error", { message: rateLimitError.message, code: rateLimitError.code });
+    redirect("/register?error=server");
+  }
+  if (!registrationAllowed) {
+    await client.from("audit_logs").insert({ action: "auth.registration.rate_limited", target_type: "registration" });
+    redirect("/register?error=rate-limit");
+  }
+
   const { data: settings, error: settingsError } = await client
     .from("app_settings")
     .select("recruiting_open")

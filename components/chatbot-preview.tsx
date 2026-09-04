@@ -190,5 +190,6 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
       />
       <button type="submit" disabled={sending || !message.trim()} aria-label="送信"><Send /></button>
     </form>
+    <p className="chatbot-privacy-note">個人情報は入力しないでください。回答生成が必要な場合、質問と選択されたMarkdown内容を外部AIサービス（Google Gemini）へ送信します。</p>
   </section>;
 }

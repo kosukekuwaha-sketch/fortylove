@@ -23,3 +23,10 @@ export function isOwnedEventDocumentUploadPath(path: string, actorId: string) {
   const objectName = path.slice(prefix.length);
   return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.pdf$/i.test(objectName);
 }
+
+export function isAttachedEventDocumentPath(path: string, eventId: string) {
+  const prefix = `events/${eventId}/`;
+  if (!path.startsWith(prefix)) return false;
+  const objectName = path.slice(prefix.length);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.pdf$/i.test(objectName);
+}
