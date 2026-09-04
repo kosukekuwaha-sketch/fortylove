@@ -2,9 +2,9 @@
 
 ## 既存の本番Supabaseを更新する
 
-1. SQL Editorで`inspect_current.sql`を実行し、実DBの状態を保存する。この処理は読み取り専用である。
+1. SQL Editorで`inspect_current.sql`をファイル全体のまま実行し、1つの結果表を保存する。この処理は読み取り専用である。
 2. Supabase Dashboardでバックアップを確認する。
-3. 棚卸し結果が貼付資料と一致することを確認してから、`manual/production_upgrade_20260905.sql`をファイル全体のまま実行する。
+3. 棚卸し結果の先頭が`SUMMARY / READY`であることを確認してから、`manual/production_upgrade_20260905.sql`をファイル全体のまま実行する。`UPGRADE_TARGET / MISSING`は統合アップグレードで追加されるため、実行前には存在していなくても問題ない。
 4. 続けて`verify_production.sql`を実行する。
 5. 最初の確認結果がすべて`true`、重複パスの結果が0件、適用バージョンが1件であることを確認する。
 
