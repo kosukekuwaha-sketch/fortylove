@@ -1,5 +1,8 @@
 "use server";
 
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { embedTexts } from "@/lib/embeddings";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin, requireSession } from "@/lib/server/action-context";
@@ -16,6 +19,10 @@ import {
   faqSubmissionIdInputSchema,
   updateFaqInputSchema,
 } from "@/lib/server-action-validation";
+
+async function faqEmbedding(question: string, answer: string) {
+  try { return (await embedTexts([`${question}\n${answer}`]))[0]; } catch { return null; }
+}
 
 const faqFormInput = (formData: FormData) => ({
   question: formText(formData, "question"),
@@ -45,7 +52,7 @@ export async function answerSubmittedQuestion(formData: FormData) {
   }, "/admin/faqs?error=answer");
   const { submission_id: submissionId, ...faqInput } = input;
   const client = db();
-  const { data: faq, error: faqError } = await client.from("faqs").insert(faqInput).select("id").single();
+  const { data: faq, error: faqError } = await client.from("faqs").insert({ ...faqInput, embedding: await faqEmbedding(faqInput.question, faqInput.answer) }).select("id").single();
   if (faqError || !faq) redirect("/admin/faqs?error=answer");
   const { error: submissionError } = await client.from("faq_questions").update({
     status: "answered",
@@ -78,7 +85,7 @@ export async function createFaq(formData: FormData) {
   const user = await requireAdmin();
   const input = parseActionInput(createFaqInputSchema, faqFormInput(formData), "/admin/faqs?error=create");
   const client = db();
-  const { data, error } = await client.from("faqs").insert(input).select("id").single();
+  const { data, error } = await client.from("faqs").insert({ ...input, embedding: await faqEmbedding(input.question, input.answer) }).select("id").single();
   if (error) redirect("/admin/faqs?error=create");
   await writeAuditLog(client, { actorId: user.id, action: "faq.create", targetType: "faq", targetId: data?.id });
   redirect("/admin/faqs?created=1");
@@ -124,6 +131,7 @@ export async function updateFaq(formData: FormData) {
   const client = db();
   const { error } = await client.from("faqs").update({
     ...faqInput,
+    embedding: await faqEmbedding(faqInput.question, faqInput.answer),
     updated_at: new Date().toISOString(),
   }).eq("id", faqId);
   if (error) redirect("/admin/faqs?error=update");
@@ -143,4 +151,30 @@ export async function deleteFaq(formData: FormData) {
   if (error) redirect("/admin/faqs?error=delete");
   await writeAuditLog(client, { actorId: user.id, action: "faq.delete", targetType: "faq", targetId: faqId });
   redirect("/admin/faqs?deleted=1");
+}
+
+export async function reorderFaqs(ids: string[]) {
+  const user = await requireAdmin();
+  const parsed = z.array(z.string().uuid()).max(10000).refine((values) => new Set(values).size === values.length).safeParse(ids);
+  if (!parsed.success) return { error: "並び順を確認してください。" };
+  const { error } = await db().rpc("reorder_faqs", { p_actor: user.id, p_ids: parsed.data });
+  if (error) return { error: "一覧が変更されたか保存に失敗しました。再読み込みしてお試しください。" };
+  revalidatePath("/faq");
+  return { error: null };
+}
+
+export async function refreshFaqSearch() {
+  await requireAdmin();
+  const client = db();
+  const { data, error } = await client.from("faqs").select("id,question,answer,updated_at").eq("is_published", true).is("embedding", null).order("id").limit(25);
+  if (error) return { error: "検索データを読み込めません。追加マイグレーションをご確認ください。", updated: 0, more: false };
+  if (!data.length) return { error: null, updated: 0, more: false };
+  try {
+    const vectors = await embedTexts(data.map((faq) => `${faq.question}\n${faq.answer}`));
+    for (let i = 0; i < data.length; i++) {
+      const result = await client.from("faqs").update({ embedding: vectors[i] }).eq("id", data[i].id).eq("updated_at", data[i].updated_at);
+      if (result.error) throw new Error("保存に失敗しました。");
+    }
+    return { error: null, updated: data.length, more: data.length === 25 };
+  } catch { return { error: "検索データの生成に失敗しました。API設定・利用枠を確認して再試行してください。FAQ本文は維持されています。", updated: 0, more: false }; }
 }

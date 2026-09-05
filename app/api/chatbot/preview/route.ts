@@ -3,12 +3,18 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canUseChatbot, chatbotSourcesForAudience, type ChatbotRole } from "@/lib/chatbot-access";
-import { decideKnowledgeResponse, formatEventAnswer, isEventQuestion, type ChatbotEvent, type ChatbotKnowledge } from "@/lib/chatbot";
+import { allowsGeneralAnswer, decideKnowledgeResponse, isEventQuestion, type ChatbotKnowledge } from "@/lib/chatbot";
 import { generateGroundedAnswer } from "@/lib/gemini-chatbot";
+
+import { readKnowledge } from "@/lib/server/knowledge-data";
+import { answerEvents } from "@/lib/server/chatbot-events";
+import { embedTexts } from "@/lib/embeddings";
+import { issueGeneralTicket, verifyGeneralTicket } from "@/lib/server/general-answer-ticket";
 
 const requestSchema = z.object({
   message: z.string().trim().min(1).max(500),
   audience: z.enum(["admin", "member"]).optional(),
+  generalTicket: z.string().max(5000).optional(),
   choiceId: z.string().uuid().optional(),
 });
 
@@ -36,6 +42,9 @@ export async function POST(request: Request) {
   if (!canUseChatbot(role, settings)) return NextResponse.json({ error: "チャットBotの利用は許可されていません。" }, { status: 403 });
   const audience = role === "super_admin" ? input.data.audience ?? "member" : role === "admin" ? "admin" : "member";
   const sourceNames = chatbotSourcesForAudience(audience, settings);
+  if (input.data.generalTicket && (!allowsGeneralAnswer(input.data.message) || !verifyGeneralTicket(input.data.generalTicket, session.id, audience, input.data.message))) {
+    return NextResponse.json({ error: "この質問の一般回答は利用できません。もう一度質問してください。" }, { status: 400 });
+  }
   if (role !== "super_admin") {
     const usageDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
     const { data: consumed, error: usageError } = await client.rpc("consume_chatbot_message", { p_user_id: session.id, p_usage_date: usageDate });
@@ -43,16 +52,17 @@ export async function POST(request: Request) {
     if (!consumed) return NextResponse.json({ answer: "本日のチャット利用上限（10件）に達しました。", source: "1日10件まで", kind: "daily-limit", offerEscalation: true }, { status: 429 });
   }
 
-  if (!input.data.choiceId && isEventQuestion(input.data.message)) {
-    const { data: events } = await client.from("events").select("id,title,starts_at,ends_at,location,capacity,description,reservations(status)").gte("ends_at", new Date().toISOString()).order("starts_at").limit(1);
-    const event = events?.[0] as ChatbotEvent | undefined;
-    if (event) return NextResponse.json({ answer: formatEventAnswer(input.data.message, event), source: `イベント情報：${event.title}`, kind: "event" });
+  if (input.data.generalTicket) {
+    const answer = await generateGroundedAnswer(input.data.message, [], { general: true, audience });
+    return NextResponse.json({ answer: answer ? `Fortyloveの公式回答ではありません。一般的な参考情報です。\n\n${answer}` : "一般的な回答を取得できませんでした。運営スタッフにご相談ください。", kind: "general", offerEscalation: !answer });
   }
-
-  const { data: records } = sourceNames.length
-    ? await client.from("chatbot_knowledge").select("id,title,content,category,keywords,priority,is_active,source_name").eq("source_type", "markdown").in("source_name", sourceNames).order("priority", { ascending: false })
-    : { data: [] };
-  const knowledge = (records ?? []) as ChatbotKnowledge[];
+  if (!input.data.choiceId && isEventQuestion(input.data.message)) {
+    try { return NextResponse.json({ answer: await answerEvents(input.data.message), kind: "event" }); }
+    catch { return NextResponse.json({ error: "開催情報を確認できませんでした。時間をおいてお試しください。" }, { status: 503 }); }
+  }
+  let knowledge: ChatbotKnowledge[];
+  try { knowledge = await readKnowledge(sourceNames); }
+  catch { return NextResponse.json({ error: "回答資料を確認できませんでした。時間をおいてお試しください。" }, { status: 503 }); }
 
   if (input.data.choiceId) {
     const selected = knowledge.find((record) => record.id === input.data.choiceId);
@@ -60,25 +70,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ answer: selected.content, source: `Bot回答データ：${selected.title}`, kind: "knowledge" });
   }
 
-  const decision = decideKnowledgeResponse(input.data.message, knowledge);
+  let decision = decideKnowledgeResponse(input.data.message, knowledge);
+  if (decision.kind !== "direct") {
+    try {
+      const [vector] = await embedTexts([input.data.message], true);
+      const { data, error } = await client.rpc("chatbot_semantic_matches", { p_sources: sourceNames, p_query: vector });
+      if (!error && data) decision = decideKnowledgeResponse(input.data.message, knowledge, Object.fromEntries(data.map((item: { id: string; similarity: number }) => [item.id, item.similarity])));
+    } catch { /* Keyword retrieval remains available when the embedding service is unavailable. */ }
+  }
   if (decision.kind === "direct") {
     return NextResponse.json({ answer: decision.record.content, source: `Bot回答データ：${decision.record.title}`, kind: "knowledge" });
   }
   if (decision.kind === "choices") return choiceResponse(decision.records);
   if (decision.kind === "synthesize") {
-    const synthesized = await generateGroundedAnswer(input.data.message, decision.records);
+    const synthesized = await generateGroundedAnswer(input.data.message, decision.records, { audience });
     if (synthesized) {
       return NextResponse.json({ answer: synthesized, source: "Gemini・関連Markdown", kind: "gemini" });
     }
     return choiceResponse(decision.records);
   }
 
-  const generated = await generateGroundedAnswer(input.data.message, knowledge);
-  if (generated) return NextResponse.json({ answer: generated, source: `Gemini・Markdown：${sourceNames.join("、")}`, kind: "gemini" });
   return NextResponse.json({
-    answer: settings?.chatbot_fallback_message ?? "この質問はまだ回答データがありません。",
-    source: "回答データなし",
+    answer: "資料には記載がありません。必要であれば運営スタッフへ確認できます。",
     kind: "fallback",
     offerEscalation: true,
+    ...(allowsGeneralAnswer(input.data.message) ? { generalTicket: issueGeneralTicket(session.id, audience, input.data.message) } : {}),
   });
 }

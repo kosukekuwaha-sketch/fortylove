@@ -8,6 +8,7 @@ type Message = {
   role: "user" | "bot";
   text: string;
   source?: string;
+  generalTicket?: string;
   offerEscalation?: boolean;
   question?: string;
   decided?: boolean;
@@ -15,6 +16,7 @@ type Message = {
 };
 
 type ChatbotResponse = {
+  generalTicket?: string;
   answer?: string;
   source?: string;
   error?: string;
@@ -22,11 +24,12 @@ type ChatbotResponse = {
   choices?: ChatbotChoice[];
 };
 
-export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview" | "admin" | "member"; onClose?: () => void }) {
+export function ChatbotPreview({ mode = "preview", onClose, active = true }: { mode?: "preview" | "admin" | "member"; onClose?: () => void; active?: boolean }) {
   const titleId = useId();
   const inputId = useId();
   const messagesRef = useRef<HTMLDivElement>(null);
-  const [inputName, setInputName] = useState("fortylove-chatbot-question");
+  const history = useRef<Partial<Record<"admin" | "member", Message[]>>>({});
+  const requestLock = useRef(false);
   const [testAudience, setTestAudience] = useState<"admin" | "member">("member");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([{
@@ -43,17 +46,26 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
     const frame = requestAnimationFrame(() => {
       const container = messagesRef.current;
       if (!container) return;
-      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+      container.scrollTo({ top: container.scrollHeight, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     });
     return () => cancelAnimationFrame(frame);
-  }, [messages, sending, escalating]);
+  }, [messages, sending, escalating, active]);
 
   useEffect(() => {
-    setInputName(`fortylove-chatbot-question-${crypto.randomUUID()}`);
-  }, []);
+    if (!active) setMessage("");
+  }, [active]);
 
-  async function requestAnswer(displayText: string, requestMessage = displayText, choiceId?: string) {
-    if (!displayText.trim() || sending) return;
+  useEffect(() => {
+    const container = messagesRef.current;
+    if (!container || !active) return;
+    const observer = new ResizeObserver(() => container.scrollTo({ top: container.scrollHeight, behavior: "instant" }));
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [active]);
+
+  async function requestAnswer(displayText: string, requestMessage = displayText, choiceId?: string, generalTicket?: string) {
+    if (!displayText.trim() || requestLock.current) return;
+    requestLock.current = true;
     setMessages((current) => [
       ...current.map((item) => item.choices ? { ...item, choices: undefined } : item),
       { role: "user", text: displayText },
@@ -67,6 +79,7 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           message: requestMessage,
+          ...(generalTicket ? { generalTicket } : {}),
           ...(choiceId ? { choiceId } : {}),
           ...(mode === "preview" ? { audience: testAudience } : {}),
         }),
@@ -78,6 +91,7 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
         role: "bot",
         text: result.answer ?? result.error ?? "回答を取得できませんでした。",
         source: result.source,
+        generalTicket: result.generalTicket,
         offerEscalation: result.offerEscalation,
         question: requestMessage,
         choices,
@@ -85,6 +99,7 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
     } catch {
       setMessages((current) => [...current, { role: "bot", text: "通信に失敗しました。時間をおいてお試しください。" }]);
     } finally {
+      requestLock.current = false;
       setSending(false);
     }
   }
@@ -123,9 +138,13 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
   }
 
   function changeTestAudience(audience: "admin" | "member") {
+    if (sending || escalating || audience === testAudience) return;
+    history.current[testAudience] = messages;
     setTestAudience(audience);
-    setPendingChoices([]);
-    setMessages([{
+    setMessage("");
+    const previous = history.current[audience];
+    setPendingChoices(previous?.at(-1)?.choices ?? []);
+    setMessages(previous ?? [{
       role: "bot",
       text: `${audience === "admin" ? "管理者" : "一般ユーザー"}向けの参照元へ切り替えました。質問を入力してください。`,
     }]);
@@ -143,14 +162,14 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
     {mode === "preview" && <div className="chatbot-test-audience">
       <span>テスト対象</span>
       <div>
-        <button type="button" className={testAudience === "admin" ? "active" : ""} onClick={() => changeTestAudience("admin")}>管理者</button>
-        <button type="button" className={testAudience === "member" ? "active" : ""} onClick={() => changeTestAudience("member")}>一般ユーザー</button>
+        <button type="button" className={testAudience === "admin" ? "active" : ""} disabled={sending || escalating} onClick={() => changeTestAudience("admin")}>管理者</button>
+        <button type="button" className={testAudience === "member" ? "active" : ""} disabled={sending || escalating} onClick={() => changeTestAudience("member")}>一般ユーザー</button>
       </div>
     </div>}
     <div ref={messagesRef} className="chatbot-messages" aria-live="polite">
       {messages.map((item, index) => <div className={`chat-message ${item.role}`} key={`${item.role}-${index}`}>
         <p>{item.text}</p>
-        {item.source && <small>根拠：{item.source}</small>}
+        {mode === "preview" && item.source && <small>根拠：{item.source}</small>}
         {!!item.choices?.length && <div className="chatbot-choice-list" aria-label="回答候補">
           {item.choices.map((choice) => <button
             type="button"
@@ -162,6 +181,7 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
           </button>)}
           <small>ボタンを押すか、番号を入力してください。</small>
         </div>}
+        {item.generalTicket && <button type="button" className="general-answer-button" disabled={sending} onClick={() => requestAnswer("一般的な回答を見る", item.question, undefined, item.generalTicket)}>一般的な回答を見る{mode !== "preview" && "（利用回数1件）"}</button>}
         {item.offerEscalation && !item.decided && <div className="escalation-choice">
           <strong><UserRoundCheck />有人対応を希望しますか？</strong>
           <div>
@@ -175,14 +195,15 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
     </div>
     <form onSubmit={send} autoComplete="off">
       <label className="sr-only" htmlFor={inputId}>質問</label>
-      <input
+      <textarea
         id={inputId}
-        name={inputName}
         value={message}
         onChange={(event) => setMessage(event.target.value)}
         maxLength={500}
         placeholder={pendingChoices.length ? "番号でも選べます（例：2）" : "例：次の新歓はいつ？"}
-        autoComplete="new-password"
+        rows={1}
+        autoComplete="off"
+        onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }}
         aria-autocomplete="none"
         data-1p-ignore="true"
         data-lpignore="true"
@@ -190,6 +211,6 @@ export function ChatbotPreview({ mode = "preview", onClose }: { mode?: "preview"
       />
       <button type="submit" disabled={sending || !message.trim()} aria-label="送信"><Send /></button>
     </form>
-    <p className="chatbot-privacy-note">個人情報は入力しないでください。回答生成が必要な場合、質問と選択されたMarkdown内容を外部AIサービス（Google Gemini）へ送信します。</p>
+    <details className="chatbot-privacy-note"><summary>利用について</summary><p>回答のため外部AIサービスを利用する場合があります。個人情報は入力しないでください。</p></details>
   </section>;
 }

@@ -7,21 +7,21 @@ const knowledge = [{
 
 describe("chatbot matching", () => {
   it("表記ゆれを正規化する", () => expect(normalizeChatText("テニス、 初心者！")).toBe("テニス初心者"));
-  it("キーワードに合う知識を選ぶ", () => expect(findKnowledgeAnswer("テニス未経験でも大丈夫？", knowledge)?.id).toBe("1"));
-  it("旧回答単位の状態に関係なくMarkdown知識を使う", () => expect(findKnowledgeAnswer("テニス未経験でも大丈夫？", [{ ...knowledge[0], is_active: false }])?.id).toBe("1"));
+  it("単一キーワードは候補にするが直接回答しない", () => expect(decideKnowledgeResponse("テニス未経験でも大丈夫？", knowledge).kind).toBe("synthesize"));
+  it("旧回答単位の状態に関係なくMarkdown知識を使う", () => expect(findKnowledgeAnswer("初心者の参加", [{ ...knowledge[0], is_active: false }])?.id).toBe("1"));
   it("無関係な質問には回答しない", () => expect(findKnowledgeAnswer("会計担当者の電話番号は？", knowledge)).toBeNull());
   it("イベント質問を識別する", () => expect(isEventQuestion("次の新歓はいつ？")).toBe(true));
   it("新歓の募集期間はイベント日程よりFAQを優先する", () => expect(isEventQuestion("新歓はいつまでですか？")).toBe(false));
   it("参加条件の質問をイベント質問と誤判定しない", () => expect(isEventQuestion("新歓は初心者でも参加できますか？")).toBe(false));
-  it("近い回答が複数ある曖昧な質問は候補を返す", () => {
+  it("近い回答が複数ある曖昧な質問は最大3件を統合する", () => {
     const records = [
       { ...knowledge[0], id: "fee", title: "会費", content: "会費の回答", keywords: ["費用"] },
       { ...knowledge[0], id: "annual", title: "年間費用", content: "年間費用の回答", keywords: ["費用"] },
       { ...knowledge[0], id: "event-fee", title: "イベント費", content: "イベント費の回答", keywords: ["費用"] },
     ];
     const decision = decideKnowledgeResponse("費用について知りたい", records);
-    expect(decision.kind).toBe("choices");
-    if (decision.kind === "choices") expect(decision.records).toHaveLength(3);
+    expect(decision.kind).toBe("synthesize");
+    if (decision.kind === "synthesize") expect(decision.records).toHaveLength(3);
   });
   it("複数の関心を含む質問はGemini統合対象にする", () => {
     const records = [
@@ -43,4 +43,17 @@ describe("chatbot matching", () => {
     expect(answer).toContain("あと9名");
     expect(answer).toContain("回答時点");
   });
+});
+
+it("意味が高一致の一意な回答は直接返す", () => {
+  expect(decideKnowledgeResponse("ラケットを握ったことがなくても大丈夫？", knowledge, { "1": 0.94 }).kind).toBe("direct");
+});
+it("中一致は生成対象、意味が低一致なら候補にしない", () => {
+  expect(decideKnowledgeResponse("初参加について", knowledge, { "1": 0.75 }).kind).toBe("synthesize");
+  expect(decideKnowledgeResponse("学食の営業時間", knowledge, { "1": 0.4 }).kind).toBe("none");
+});
+it("FAQとMarkdownの同一回答を重複させない", () => {
+  const result = decideKnowledgeResponse("未経験です", [knowledge[0], { ...knowledge[0], id: "duplicate" }]);
+  if (result.kind !== "synthesize") throw new Error("expected synthesis");
+  expect(result.records).toHaveLength(1);
 });

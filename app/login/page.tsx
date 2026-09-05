@@ -1,3 +1,4 @@
+import { FormFeedback } from "@/components/form-feedback";
 import Link from "next/link";
 import { ArrowRight, LockKeyhole, UserRound } from "lucide-react";
 import { Brand } from "@/components/brand";
@@ -16,7 +17,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       <div className="auth-box"><div className="mobile-brand"><Brand /></div><p className="eyebrow green">MEMBER LOGIN</p><TimeGreeting /><p className="muted">登録した名前とパスワードでログインしてください。</p>
         {error && <div className="alert">{error === "server" ? "データベースへ接続できませんでした。運営担当者に設定の確認を依頼してください。" : error === "rate-limit" ? "ログイン試行回数が上限に達しました。10分後にもう一度お試しください。" : "名前またはパスワードが違います。"}</div>}
         {deleted && <div className="success-message">退会手続きが完了し、アカウントを削除しました。</div>}
-        <form action={login}>
+        <form action={login}><FormFeedback />
           <label>名前<div className="input-wrap"><UserRound /><input name="name" autoComplete="username" placeholder="山田 太郎" required /></div></label>
           <label>パスワード<div className="input-wrap"><LockKeyhole /><input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required /></div></label>
           <button className="primary" type="submit">ログイン <ArrowRight /></button>

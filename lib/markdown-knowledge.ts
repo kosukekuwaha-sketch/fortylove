@@ -84,5 +84,17 @@ export function parseMarkdownKnowledge(markdown: string, fallbackTitle: string) 
     current = { title, category: level === 1 ? "基本情報" : category, lines: [], order: sections.length };
   }
   if (current) sections.push(current);
-  return sections.flatMap(splitSection).slice(0, 100);
+  return sections.flatMap(splitSection);
+}
+
+export const MARKDOWN_MAX_FILES = 10;
+export const MARKDOWN_MAX_BYTES = 1_000_000;
+export const MARKDOWN_MAX_RECORDS = 1000;
+
+export function validateMarkdownFiles(files: { name: string; size: number }[]) {
+  if (!files.length || files.length > MARKDOWN_MAX_FILES) return "一度に選択できるのは1〜10ファイルです。";
+  if (files.reduce((sum, file) => sum + file.size, 0) > MARKDOWN_MAX_BYTES) return "合計1MB（1,000,000バイト）まで選択できます。";
+  if (files.some((file) => !/\.md$/i.test(file.name) || !file.size || file.name.length > 255)) return "名前が255文字以内の空でない.mdファイルを選択してください。";
+  if (new Set(files.map((file) => file.name)).size !== files.length) return "同じ名前のファイルは同時に選択できません。";
+  return null;
 }

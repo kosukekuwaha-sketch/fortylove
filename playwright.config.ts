@@ -4,6 +4,7 @@ const externalBaseUrl = process.env.E2E_BASE_URL;
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: "experience.spec.ts",
   fullyParallel: false,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",

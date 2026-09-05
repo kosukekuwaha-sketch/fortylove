@@ -64,6 +64,10 @@ jobs:
       - if: steps.changes.outputs.database == 'true'
         run: psql -v ON_ERROR_STOP=1 -f supabase/verify_production.sql
       - if: steps.changes.outputs.database == 'true'
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260906_chatbot_experience.sql
+      - if: steps.changes.outputs.database == 'true'
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/chatbot_experience.sql
+      - if: steps.changes.outputs.database == 'true'
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/p0_quality.sql
       - name: Prepare reservation concurrency test
         if: steps.changes.outputs.database == 'true'
@@ -115,3 +119,6 @@ jobs:
       - name: Run Playwright smoke tests
         if: steps.changes.outputs.heavy_verify == 'true'
         run: pnpm test:e2e:smoke
+      - name: Check chatbot and FAQ on desktop and mobile
+        if: steps.changes.outputs.heavy_verify == 'true'
+        run: pnpm test:e2e:experience
