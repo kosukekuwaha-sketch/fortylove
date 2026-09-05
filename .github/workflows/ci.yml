@@ -39,6 +39,14 @@ jobs:
       - run: psql -v ON_ERROR_STOP=1 -f supabase/manual/production_upgrade_20260905.sql
       - run: psql -v ON_ERROR_STOP=1 -f supabase/verify_production.sql
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/p0_quality.sql
+      - name: Prepare reservation concurrency test
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/reservation_concurrency_setup.sql
+      - name: Race 20 reservations for one remaining seat
+        run: |
+          seq -w 000000000001 000000000020 | xargs -P 20 -I {} \
+            psql -v ON_ERROR_STOP=1 -Atc "select public.reserve_event('20000000-0000-0000-0000-{}'::uuid, '10000000-0000-0000-0000-000000000001'::uuid)"
+      - name: Verify reservation capacity after concurrency
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/reservation_concurrency_assert.sql
 
   verify:
     runs-on: ubuntu-latest
@@ -61,3 +69,5 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-key
           SESSION_SECRET: ci-only-session-secret-at-least-32-characters
           CRON_SECRET: ci-only-cron-secret
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e:smoke
