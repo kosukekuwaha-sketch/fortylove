@@ -49,6 +49,7 @@
 - 署名済みHttpOnly Cookieによるセッション管理
 - Vercel（Webホスティング・Cron）
 - Vitest（単体テスト）
+- Playwright（認証境界と予約・キャンセルのブラウザE2E）
 - GitHub Actions（型検査・テスト・本番ビルド）
 
 サーバー処理は`app/server-actions/`へ集約し、機能領域ごとに分割しています。既存の会員画面向けimportは互換用の`app/actions.ts`で維持します。
@@ -140,6 +141,8 @@ Markdown参照元の保存時に設定列がない旨が表示された場合は
 | `pnpm typecheck` | TypeScript型検査 |
 | `pnpm test` | 単体テストを1回実行 |
 | `pnpm test:watch` | 単体テストを監視実行 |
+| `pnpm test:e2e:smoke` | 未認証状態のログイン・認証境界をChromiumで確認 |
+| `pnpm test:e2e` | 全Playwright E2Eを実行（予約フローは`E2E_*`設定時のみ） |
 | `pnpm build` | Vercel相当の本番ビルド |
 | `pnpm check` | 型検査・テスト・ビルドを連続実行 |
 
@@ -158,8 +161,9 @@ Markdown参照元の保存時に設定列がない旨が表示された場合は
 3. Vitest単体テスト
 4. Next.js本番ビルド
 5. PostgreSQL上でのスキーマ・P0統合テスト
+6. Playwrightによるログイン画面・認証境界のブラウザテスト
 
-本番はGitHubリポジトリをVercelへ接続し、Environment Variablesへ`.env.example`の項目を登録します。`CRON_SECRET`はVercel Cronの認証に使うため、`SESSION_SECRET`とは別の十分長いランダム値にします。`main`へのpush後、CIとVercelデプロイの双方が成功していることを確認してください。GitHubの`main`ブランチには、Pull Request必須・CIの`database`と`verify`必須・承認1名以上・管理者にも適用、のBranch protection ruleを設定してください。
+本番はGitHubリポジトリをVercelへ接続し、Environment Variablesへ`.env.example`の項目を登録します。`CRON_SECRET`はVercel Cronの認証に使うため、`SESSION_SECRET`とは別の十分長いランダム値にします。`main`へのpush後、CIとVercelデプロイの双方が成功していることを確認してください。GitHubの`main`ブランチには、Pull Request必須・CIの`database`と`verify`必須・ブランチ最新化必須・管理者にも適用、のBranch protection ruleを設定済みです。単独運用で自己承認不能になることを避けるため、承認人数は必須にしていません。
 
 ## 運用監視
 
@@ -182,4 +186,4 @@ Markdown参照元の保存時に設定列がない旨が表示された場合は
 
 ## 現在のテスト範囲
 
-パスワードポリシー、登録下書きの機密情報除外、ログインRate Limit識別子、イベントPDFのサイズ・形式・アップロードパス、チャットBotの回答判定などを単体テストしています。PostgreSQL統合テストでは予約定員、キャンセル、退会、学年更新の冪等性、ログイン失敗上限を確認します。実ブラウザでの登録・予約・PDFアップロード・閲覧を連結したE2Eテストは今後の対象です。
+パスワードポリシー、Server ActionのZod入力検証、管理者認可境界、登録下書きの機密情報除外、ログインRate Limit識別子、イベントPDFのサイズ・形式・アップロードパス、チャットBotの回答判定などを単体・統合テストしています。PostgreSQL統合テストでは予約定員、20並列予約、キャンセル、退会、学年更新の冪等性、ログイン失敗上限を確認します。Playwrightは未認証ユーザーの認証境界をCIで毎回確認し、`E2E_BASE_URL`、`E2E_MEMBER_NAME`、`E2E_MEMBER_PASSWORD`、`E2E_EVENT_TITLE`を設定したテスト環境ではログイン・予約・キャンセルを実ブラウザで連結して確認します。新規登録とPDFアップロード・閲覧の完全E2Eは、専用の使い捨てSupabase環境を用意した後の対象です。

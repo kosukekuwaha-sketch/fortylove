@@ -2,21 +2,24 @@
 
 import { redirect } from "next/navigation";
 import { createHash } from "crypto";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/server/action-context";
 import { formText } from "@/lib/server/form-data";
 import { parseMarkdownKnowledge } from "@/lib/markdown-knowledge";
 import { isMissingColumnError } from "@/lib/supabase-errors";
-
-const escalationEmailSchema = z.union([z.literal(""), z.string().email().max(254)]);
+import {
+  chatbotAudienceAccessInputSchema,
+  chatbotAudienceSourcesInputSchema,
+  escalationEmailSchema,
+  markdownFileSchema,
+  markdownSourceNameSchema,
+} from "@/lib/server-action-validation";
 
 export async function updateChatbotAudienceAccess(formData: FormData) {
   const user = await requireSuperAdmin();
-  const audience = formText(formData, "audience");
-  const value = formText(formData, "enabled");
-  if (!['admin', 'member'].includes(audience) || (value !== "true" && value !== "false")) redirect("/admin/chatbot?error=access-validation");
-  const enabled = value === "true";
+  const parsed = chatbotAudienceAccessInputSchema.safeParse({ audience: formText(formData, "audience"), enabled: formText(formData, "enabled") });
+  if (!parsed.success) redirect("/admin/chatbot?error=access-validation");
+  const { audience, enabled } = parsed.data;
   const client = db();
   const updates = audience === "admin" ? { chatbot_admin_enabled: enabled } : { chatbot_member_enabled: enabled };
   const { error } = await client.from("app_settings").update(updates).eq("id", 1);
@@ -27,20 +30,21 @@ export async function updateChatbotAudienceAccess(formData: FormData) {
 
 export async function updateChatbotAudienceSources(formData: FormData) {
   const user = await requireSuperAdmin();
-  const audience = formText(formData, "audience");
   const sourceNames = [...new Set(formData.getAll("source_names").map((value) => String(value).trim()).filter(Boolean))];
-  if (!['admin', 'member'].includes(audience) || sourceNames.length > 50 || sourceNames.some((name) => name.length > 255)) redirect("/admin/chatbot?error=sources-validation");
+  const parsed = chatbotAudienceSourcesInputSchema.safeParse({ audience: formText(formData, "audience"), source_names: sourceNames });
+  if (!parsed.success) redirect("/admin/chatbot?error=sources-validation");
+  const { audience, source_names: validatedSourceNames } = parsed.data;
   const client = db();
-  if (sourceNames.length) {
-    const { data: available, error: sourceError } = await client.from("chatbot_knowledge").select("source_name").eq("source_type", "markdown").in("source_name", sourceNames);
+  if (validatedSourceNames.length) {
+    const { data: available, error: sourceError } = await client.from("chatbot_knowledge").select("source_name").eq("source_type", "markdown").in("source_name", validatedSourceNames);
     const availableNames = new Set((available ?? []).map((item) => item.source_name));
     if (sourceError) {
       console.error("Failed to verify chatbot Markdown sources", { code: sourceError.code, message: sourceError.message, details: sourceError.details });
       redirect("/admin/chatbot?error=sources-read");
     }
-    if (sourceNames.some((name) => !availableNames.has(name))) redirect("/admin/chatbot?error=sources-validation");
+    if (validatedSourceNames.some((name) => !availableNames.has(name))) redirect("/admin/chatbot?error=sources-validation");
   }
-  const updates = audience === "admin" ? { chatbot_admin_sources: sourceNames } : { chatbot_member_sources: sourceNames };
+  const updates = audience === "admin" ? { chatbot_admin_sources: validatedSourceNames } : { chatbot_member_sources: validatedSourceNames };
   const { error } = await client.from("app_settings").update(updates).eq("id", 1);
   if (error) {
     console.error("Failed to save chatbot Markdown sources", { code: error.code, message: error.message, details: error.details });
@@ -64,7 +68,7 @@ export async function updateChatbotEscalationEmail(formData: FormData) {
 
 export async function deleteChatbotMarkdownSource(formData: FormData) {
   const user = await requireSuperAdmin();
-  const sourceName = z.string().min(1).max(255).safeParse(formText(formData, "source_name"));
+  const sourceName = markdownSourceNameSchema.safeParse(formText(formData, "source_name"));
   if (!sourceName.success) redirect("/admin/chatbot?error=markdown-source");
   const client = db();
   const { error } = await client.from("chatbot_knowledge").delete().eq("source_type", "markdown").eq("source_name", sourceName.data);
@@ -80,10 +84,9 @@ export async function deleteChatbotMarkdownSource(formData: FormData) {
 
 export async function importChatbotMarkdown(formData: FormData) {
   const user = await requireSuperAdmin();
-  const file = formData.get("markdown_file");
-  if (!(file instanceof File) || !file.name.toLocaleLowerCase().endsWith(".md") || file.size < 1 || file.size > 512 * 1024) {
-    redirect("/admin/chatbot?error=markdown-file");
-  }
+  const parsedFile = markdownFileSchema.safeParse(formData.get("markdown_file"));
+  if (!parsedFile.success) redirect("/admin/chatbot?error=markdown-file");
+  const file = parsedFile.data;
   const markdown = await file.text();
   const fallbackTitle = file.name.replace(/\.md$/i, "").trim().slice(0, 100) || "Markdown資料";
   const drafts = parseMarkdownKnowledge(markdown, fallbackTitle);

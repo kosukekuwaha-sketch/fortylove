@@ -8,6 +8,12 @@ import { requireAdmin } from "@/lib/server/action-context";
 import { formText } from "@/lib/server/form-data";
 import { isOwnedEventDocumentUploadPath, isValidEventDocumentName } from "@/lib/event-document-policy";
 import { attachUploadedEventDocument, EVENT_DOCUMENT_BUCKET, removeEventDocument, removeUploadedEventDocument } from "@/lib/server/event-documents";
+import {
+  attendanceInputSchema,
+  createEventInputSchema,
+  eventIdInputSchema,
+  updateEventInputSchema,
+} from "@/lib/server-action-validation";
 
 function uploadedDocument(formData: FormData, actorId: string) {
   const state = formText(formData, "document_upload_state");
@@ -26,17 +32,30 @@ export async function createEvent(formData: FormData) {
   const user = await requireAdmin();
   const uploaded = uploadedDocument(formData, user.id);
   if ("error" in uploaded) redirect(`/admin/events?error=document-${uploaded.error}`);
+  const parsed = createEventInputSchema.safeParse({
+    title: formText(formData, "title"),
+    starts_at: formText(formData, "starts_at"),
+    ends_at: formText(formData, "ends_at"),
+    location: formText(formData, "location"),
+    capacity: formText(formData, "capacity"),
+    description: formText(formData, "description"),
+    event_type: formText(formData, "event_type") || undefined,
+  });
+  if (!parsed.success) {
+    if (uploaded.document) await removeUploadedEventDocument(uploaded.document.path, user.id);
+    redirect("/admin/events?error=create");
+  }
   const client = db();
-  const startsAt = tokyoLocalToIso(formText(formData, "starts_at"));
-  const endsAt = tokyoLocalToIso(formText(formData, "ends_at"));
+  const startsAt = tokyoLocalToIso(parsed.data.starts_at);
+  const endsAt = tokyoLocalToIso(parsed.data.ends_at);
   if (!startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) {
     if (uploaded.document) await removeUploadedEventDocument(uploaded.document.path, user.id);
     redirect("/admin/events?error=create");
   }
   const { data, error } = await client.from("events").insert({
-    title: formText(formData, "title"), starts_at: startsAt, ends_at: endsAt,
-    location: formText(formData, "location"), capacity: Number(formText(formData, "capacity")), description: formText(formData, "description"),
-    event_type: formText(formData, "event_type") || "tennis",
+    title: parsed.data.title, starts_at: startsAt, ends_at: endsAt,
+    location: parsed.data.location, capacity: parsed.data.capacity, description: parsed.data.description,
+    event_type: parsed.data.event_type,
   }).select("id").single();
   if (error) {
     if (uploaded.document) await removeUploadedEventDocument(uploaded.document.path, user.id);
@@ -58,14 +77,24 @@ export async function updateEvent(formData: FormData) {
   const user = await requireAdmin();
   const uploaded = uploadedDocument(formData, user.id);
   if ("error" in uploaded) redirect(`/admin/events?error=document-${uploaded.error}`);
-  const eventId = formText(formData, "event_id");
-  const startsAt = tokyoLocalToIso(formText(formData, "starts_at"));
-  const endsAt = tokyoLocalToIso(formText(formData, "ends_at"));
-  const capacity = Number(formText(formData, "capacity"));
-  if (!eventId || !startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt) || capacity < 1) {
+  const parsed = updateEventInputSchema.safeParse({
+    event_id: formText(formData, "event_id"),
+    title: formText(formData, "title"),
+    starts_at: formText(formData, "starts_at"),
+    ends_at: formText(formData, "ends_at"),
+    location: formText(formData, "location"),
+    capacity: formText(formData, "capacity"),
+    description: formText(formData, "description"),
+    event_type: formText(formData, "event_type") || undefined,
+    remove_document: formText(formData, "remove_document") || "false",
+  });
+  const startsAt = parsed.success ? tokyoLocalToIso(parsed.data.starts_at) : null;
+  const endsAt = parsed.success ? tokyoLocalToIso(parsed.data.ends_at) : null;
+  if (!parsed.success || !startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) {
     if (uploaded.document) await removeUploadedEventDocument(uploaded.document.path, user.id);
     redirect("/admin/events?error=update");
   }
+  const { event_id: eventId, capacity } = parsed.data;
   const client = db();
   const { count } = await client.from("reservations").select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "reserved");
   if (capacity < (count ?? 0)) {
@@ -73,9 +102,9 @@ export async function updateEvent(formData: FormData) {
     redirect("/admin/events?error=capacity");
   }
   const { error } = await client.from("events").update({
-    title: formText(formData, "title"), starts_at: startsAt, ends_at: endsAt,
-    location: formText(formData, "location"), capacity, description: formText(formData, "description"),
-    event_type: formText(formData, "event_type") || "tennis",
+    title: parsed.data.title, starts_at: startsAt, ends_at: endsAt,
+    location: parsed.data.location, capacity, description: parsed.data.description,
+    event_type: parsed.data.event_type,
   }).eq("id", eventId);
   if (error) {
     if (uploaded.document) await removeUploadedEventDocument(uploaded.document.path, user.id);
@@ -87,7 +116,7 @@ export async function updateEvent(formData: FormData) {
       await removeUploadedEventDocument(uploaded.document.path, user.id);
       redirect(`/admin/events?error=document-${documentError}`);
     }
-  } else if (formText(formData, "remove_document") === "true" && !await removeEventDocument(eventId)) {
+  } else if (parsed.data.remove_document && !await removeEventDocument(eventId)) {
     redirect("/admin/events?error=document-delete");
   }
   await client.from("audit_logs").insert({ actor_id: user.id, action: "event.update", target_type: "event", target_id: eventId });
@@ -97,8 +126,9 @@ export async function updateEvent(formData: FormData) {
 
 export async function deleteEvent(formData: FormData) {
   const user = await requireAdmin();
-  const eventId = formText(formData, "event_id");
-  if (!eventId) redirect("/admin/events?error=selection");
+  const parsed = eventIdInputSchema.safeParse({ event_id: formText(formData, "event_id") });
+  if (!parsed.success) redirect("/admin/events?error=selection");
+  const eventId = parsed.data.event_id;
   const client = db();
   const { data: document } = await client.from("event_documents").select("file_path").eq("event_id", eventId).maybeSingle();
   const { error } = await client.from("events").delete().eq("id", eventId);
@@ -113,9 +143,9 @@ export async function deleteEvent(formData: FormData) {
 
 export async function updateAttendance(formData: FormData) {
   const user = await requireAdmin();
-  const reservationId = formText(formData, "id");
-  const status = formText(formData, "status");
-  if (!["reserved", "cancelled", "attended"].includes(status)) redirect("/admin/events?error=attendance");
+  const parsed = attendanceInputSchema.safeParse({ id: formText(formData, "id"), status: formText(formData, "status") });
+  if (!parsed.success) redirect("/admin/events?error=attendance");
+  const { id: reservationId, status } = parsed.data;
   const client = db();
   const { error } = await client.from("reservations").update({ status }).eq("id", reservationId);
   if (error) redirect("/admin/events?error=attendance");

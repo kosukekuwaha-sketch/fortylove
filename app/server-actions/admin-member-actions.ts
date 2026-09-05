@@ -3,20 +3,25 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { uuidSchema } from "@/lib/input-validation";
-import { isValidNewPassword } from "@/lib/password-policy";
 import { requireAdmin, requireSuperAdmin } from "@/lib/server/action-context";
 import { removeAvatarFiles } from "@/lib/server/avatar-service";
 import { formText } from "@/lib/server/form-data";
 import { archiveAndDeleteMember } from "@/lib/server/member-account-service";
-
-const isValidTemporaryPassword = (value: string) => isValidNewPassword(value) && value.length <= 256;
+import {
+  resetPasswordInputSchema,
+  restoreWithdrawalInputSchema,
+  updateRoleInputSchema,
+  updateRolesInputSchema,
+  userIdInputSchema,
+  userIdsInputSchema,
+  withdrawalIdsInputSchema,
+} from "@/lib/server-action-validation";
 
 export async function updateUserRole(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const userId = formText(formData, "user_id");
-  const role = formText(formData, "role");
-  if (userId === actor.id || !uuidSchema.safeParse(userId).success || !["member", "admin", "super_admin"].includes(role)) return;
+  const parsed = updateRoleInputSchema.safeParse({ user_id: formText(formData, "user_id"), role: formText(formData, "role") });
+  if (!parsed.success || parsed.data.user_id === actor.id) return;
+  const { user_id: userId, role } = parsed.data;
 
   const client = db();
   const { data: updated, error } = await client.rpc("set_user_role", { p_user_id: userId, p_role: role });
@@ -27,10 +32,12 @@ export async function updateUserRole(formData: FormData) {
 
 export async function updateUsersRole(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const userIds = formData.getAll("user_ids").map(String)
-    .filter((id) => id !== actor.id && uuidSchema.safeParse(id).success);
-  const role = formText(formData, "role");
-  if (!userIds.length || !["admin", "super_admin"].includes(role)) redirect("/admin/admins?error=selection");
+  const parsed = updateRolesInputSchema.safeParse({
+    user_ids: [...new Set(formData.getAll("user_ids").map(String))].filter((id) => id !== actor.id),
+    role: formText(formData, "role"),
+  });
+  if (!parsed.success) redirect("/admin/admins?error=selection");
+  const { user_ids: userIds, role } = parsed.data;
 
   const client = db();
   const updates = await Promise.all(userIds.map((userId) =>
@@ -44,9 +51,9 @@ export async function updateUsersRole(formData: FormData) {
 
 export async function resetUserPassword(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const userId = formText(formData, "user_id");
-  const temporaryPassword = formText(formData, "temporary_password");
-  if (!uuidSchema.safeParse(userId).success || !isValidTemporaryPassword(temporaryPassword)) redirect("/admin?error=password");
+  const parsed = resetPasswordInputSchema.safeParse({ user_id: formText(formData, "user_id"), temporary_password: formText(formData, "temporary_password") });
+  if (!parsed.success) redirect("/admin?error=password");
+  const { user_id: userId, temporary_password: temporaryPassword } = parsed.data;
 
   const client = db();
   const { data: updated, error } = await client.rpc("replace_user_password", {
@@ -60,8 +67,9 @@ export async function resetUserPassword(formData: FormData) {
 
 export async function registerJoinedMember(formData: FormData) {
   const actor = await requireAdmin();
-  const userId = formText(formData, "user_id");
-  if (!uuidSchema.safeParse(userId).success) redirect("/admin/members?error=membership-register");
+  const parsed = userIdInputSchema.safeParse({ user_id: formText(formData, "user_id") });
+  if (!parsed.success) redirect("/admin/members?error=membership-register");
+  const userId = parsed.data.user_id;
 
   const client = db();
   const { error } = await client.from("membership_applications").upsert(
@@ -75,8 +83,9 @@ export async function registerJoinedMember(formData: FormData) {
 
 export async function deleteMemberAccount(formData: FormData) {
   const actor = await requireAdmin();
-  const userId = formText(formData, "user_id");
-  if (!uuidSchema.safeParse(userId).success) redirect("/admin/members?error=delete");
+  const parsed = userIdInputSchema.safeParse({ user_id: formText(formData, "user_id") });
+  if (!parsed.success) redirect("/admin/members?error=delete");
+  const userId = parsed.data.user_id;
   if (!await archiveAndDeleteMember(userId, actor.id, "admin")) redirect("/admin/members?error=delete");
   await removeAvatarFiles(userId);
   redirect("/admin/members?deleted=1");
@@ -84,8 +93,9 @@ export async function deleteMemberAccount(formData: FormData) {
 
 export async function deleteReceptionAccount(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const userId = formText(formData, "user_id");
-  if (!uuidSchema.safeParse(userId).success) redirect("/admin?error=delete");
+  const parsed = userIdInputSchema.safeParse({ user_id: formText(formData, "user_id") });
+  if (!parsed.success) redirect("/admin?error=delete");
+  const userId = parsed.data.user_id;
   if (!await archiveAndDeleteMember(userId, actor.id, "admin")) redirect("/admin?error=delete");
   await removeAvatarFiles(userId);
   redirect("/admin?deleted=1");
@@ -93,9 +103,9 @@ export async function deleteReceptionAccount(formData: FormData) {
 
 export async function restoreWithdrawalAccount(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const withdrawalId = formText(formData, "withdrawal_id");
-  const temporaryPassword = formText(formData, "temporary_password");
-  if (!/^\d+$/.test(withdrawalId) || !isValidTemporaryPassword(temporaryPassword)) redirect("/admin/withdrawals?error=password");
+  const parsed = restoreWithdrawalInputSchema.safeParse({ withdrawal_id: formText(formData, "withdrawal_id"), temporary_password: formText(formData, "temporary_password") });
+  if (!parsed.success) redirect("/admin/withdrawals?error=password");
+  const { withdrawal_id: withdrawalId, temporary_password: temporaryPassword } = parsed.data;
 
   const client = db();
   const { data: archived, error: archiveError } = await client.from("membership_withdrawals")
@@ -129,9 +139,9 @@ export async function restoreWithdrawalAccount(formData: FormData) {
 
 export async function deleteMemberAccounts(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const userIds = [...new Set(formData.getAll("user_ids").map(String)
-    .filter((id) => uuidSchema.safeParse(id).success))];
-  if (!userIds.length) redirect("/admin/members?error=selection");
+  const parsed = userIdsInputSchema.safeParse({ user_ids: [...new Set(formData.getAll("user_ids").map(String))] });
+  if (!parsed.success) redirect("/admin/members?error=selection");
+  const userIds = parsed.data.user_ids;
 
   let deleted = 0;
   for (const userId of userIds) {
@@ -145,9 +155,9 @@ export async function deleteMemberAccounts(formData: FormData) {
 
 export async function deleteWithdrawalRecords(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const ids = [...new Set(formData.getAll("withdrawal_ids").map(String)
-    .filter((id) => /^\d+$/.test(id)))];
-  if (!ids.length) redirect("/admin/withdrawals?error=selection");
+  const parsed = withdrawalIdsInputSchema.safeParse({ withdrawal_ids: [...new Set(formData.getAll("withdrawal_ids").map(String))] });
+  if (!parsed.success) redirect("/admin/withdrawals?error=selection");
+  const ids = parsed.data.withdrawal_ids;
 
   const client = db();
   const { error } = await client.from("membership_withdrawals").delete().in("id", ids);
