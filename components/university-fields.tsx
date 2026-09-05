@@ -76,7 +76,6 @@ export function UniversityFields({
     {university && <label>学部
       <select name="faculty_choice" value={faculty} onChange={(event) => {
         const nextFaculty = event.target.value;
-        const nextDepartments = schools[university][nextFaculty] ?? [];
         setFaculty(nextFaculty);
         setDepartment("");
       }} required>

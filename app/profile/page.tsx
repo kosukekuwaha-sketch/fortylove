@@ -26,7 +26,10 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
     <header className="member-header"><Brand /><UserMenu name={session.name} avatarUrl={user?.avatar_url} /></header>
     <MemberNav active="profile" />
     <section className="profile-card">
-      <div className={`profile-avatar${user?.avatar_url ? " has-image" : ""}`}>{user?.avatar_url ? <img src={user.avatar_url} alt="" /> : session.name[0]}</div>
+      <div className={`profile-avatar${user?.avatar_url ? " has-image" : ""}`}>{user?.avatar_url ? (
+        // eslint-disable-next-line @next/next/no-img-element -- Public Supabase avatar URLs are already resized by CSS and must support the configured project host.
+        <img src={user.avatar_url} alt="" />
+      ) : session.name[0]}</div>
       <h1>{session.name}</h1>
       <p>{user?.university}・{user?.faculty}{visibleDepartment(user?.department) ? `・${visibleDepartment(user?.department)}` : ""}・{Number(user?.grade) >= 5 ? "4年以上" : `${user?.grade}年`}</p>
       {saved && <div className="success-message">プロフィールを更新しました。</div>}

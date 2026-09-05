@@ -1,4 +1,4 @@
-import { CalendarDays, Clock3, MapPin, UsersRound } from "lucide-react";
+import { Clock3, MapPin, UsersRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
