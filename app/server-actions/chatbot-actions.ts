@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/server/action-context";
+import { parseActionInput } from "@/lib/server/action-input";
+import { writeAuditLog } from "@/lib/server/audit-log";
 import { formText } from "@/lib/server/form-data";
 import { parseMarkdownKnowledge } from "@/lib/markdown-knowledge";
 import { isMissingColumnError } from "@/lib/supabase-errors";
@@ -17,23 +19,27 @@ import {
 
 export async function updateChatbotAudienceAccess(formData: FormData) {
   const user = await requireSuperAdmin();
-  const parsed = chatbotAudienceAccessInputSchema.safeParse({ audience: formText(formData, "audience"), enabled: formText(formData, "enabled") });
-  if (!parsed.success) redirect("/admin/chatbot?error=access-validation");
-  const { audience, enabled } = parsed.data;
+  const { audience, enabled } = parseActionInput(
+    chatbotAudienceAccessInputSchema,
+    { audience: formText(formData, "audience"), enabled: formText(formData, "enabled") },
+    "/admin/chatbot?error=access-validation",
+  );
   const client = db();
   const updates = audience === "admin" ? { chatbot_admin_enabled: enabled } : { chatbot_member_enabled: enabled };
   const { error } = await client.from("app_settings").update(updates).eq("id", 1);
   if (error) redirect("/admin/chatbot?error=access-save");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: `chatbot.access.${audience}.${enabled ? "enable" : "disable"}`, target_type: "app_settings" });
+  await writeAuditLog(client, { actorId: user.id, action: `chatbot.access.${audience}.${enabled ? "enable" : "disable"}`, targetType: "app_settings" });
   redirect(`/admin/chatbot?access_updated=${audience}-${enabled ? "on" : "off"}`);
 }
 
 export async function updateChatbotAudienceSources(formData: FormData) {
   const user = await requireSuperAdmin();
   const sourceNames = [...new Set(formData.getAll("source_names").map((value) => String(value).trim()).filter(Boolean))];
-  const parsed = chatbotAudienceSourcesInputSchema.safeParse({ audience: formText(formData, "audience"), source_names: sourceNames });
-  if (!parsed.success) redirect("/admin/chatbot?error=sources-validation");
-  const { audience, source_names: validatedSourceNames } = parsed.data;
+  const { audience, source_names: validatedSourceNames } = parseActionInput(
+    chatbotAudienceSourcesInputSchema,
+    { audience: formText(formData, "audience"), source_names: sourceNames },
+    "/admin/chatbot?error=sources-validation",
+  );
   const client = db();
   if (validatedSourceNames.length) {
     const { data: available, error: sourceError } = await client.from("chatbot_knowledge").select("source_name").eq("source_type", "markdown").in("source_name", validatedSourceNames);
@@ -51,42 +57,50 @@ export async function updateChatbotAudienceSources(formData: FormData) {
     const missingColumns = ["chatbot_admin_sources", "chatbot_member_sources"];
     redirect(`/admin/chatbot?error=${isMissingColumnError(error, missingColumns) ? "sources-migration" : "sources-save"}`);
   }
-  await client.from("audit_logs").insert({ actor_id: user.id, action: `chatbot.sources.${audience}.update`, target_type: "app_settings" });
+  await writeAuditLog(client, { actorId: user.id, action: `chatbot.sources.${audience}.update`, targetType: "app_settings" });
   redirect(`/admin/chatbot?sources_updated=${audience}`);
 }
 
 export async function updateChatbotEscalationEmail(formData: FormData) {
   const user = await requireSuperAdmin();
-  const parsed = escalationEmailSchema.safeParse(formText(formData, "escalation_email"));
-  if (!parsed.success) redirect("/admin/chatbot?error=email-validation");
+  const email = parseActionInput(
+    escalationEmailSchema,
+    formText(formData, "escalation_email"),
+    "/admin/chatbot?error=email-validation",
+  );
   const client = db();
-  const { error } = await client.from("app_settings").update({ chatbot_escalation_email: parsed.data || null }).eq("id", 1);
+  const { error } = await client.from("app_settings").update({ chatbot_escalation_email: email || null }).eq("id", 1);
   if (error) redirect("/admin/chatbot?error=email-save");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "chatbot.escalation_email.update", target_type: "app_settings" });
+  await writeAuditLog(client, { actorId: user.id, action: "chatbot.escalation_email.update", targetType: "app_settings" });
   redirect("/admin/chatbot?email_updated=1");
 }
 
 export async function deleteChatbotMarkdownSource(formData: FormData) {
   const user = await requireSuperAdmin();
-  const sourceName = markdownSourceNameSchema.safeParse(formText(formData, "source_name"));
-  if (!sourceName.success) redirect("/admin/chatbot?error=markdown-source");
+  const sourceName = parseActionInput(
+    markdownSourceNameSchema,
+    formText(formData, "source_name"),
+    "/admin/chatbot?error=markdown-source",
+  );
   const client = db();
-  const { error } = await client.from("chatbot_knowledge").delete().eq("source_type", "markdown").eq("source_name", sourceName.data);
+  const { error } = await client.from("chatbot_knowledge").delete().eq("source_type", "markdown").eq("source_name", sourceName);
   if (error) redirect("/admin/chatbot?error=markdown-delete");
   const { data: settings } = await client.from("app_settings").select("chatbot_admin_sources,chatbot_member_sources").eq("id", 1).maybeSingle();
   await client.from("app_settings").update({
-    chatbot_admin_sources: (settings?.chatbot_admin_sources ?? []).filter((name: string) => name !== sourceName.data),
-    chatbot_member_sources: (settings?.chatbot_member_sources ?? []).filter((name: string) => name !== sourceName.data),
+    chatbot_admin_sources: (settings?.chatbot_admin_sources ?? []).filter((name: string) => name !== sourceName),
+    chatbot_member_sources: (settings?.chatbot_member_sources ?? []).filter((name: string) => name !== sourceName),
   }).eq("id", 1);
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "chatbot.knowledge.delete_markdown", target_type: "chatbot_knowledge" });
+  await writeAuditLog(client, { actorId: user.id, action: "chatbot.knowledge.delete_markdown", targetType: "chatbot_knowledge" });
   redirect("/admin/chatbot?source_deleted=1");
 }
 
 export async function importChatbotMarkdown(formData: FormData) {
   const user = await requireSuperAdmin();
-  const parsedFile = markdownFileSchema.safeParse(formData.get("markdown_file"));
-  if (!parsedFile.success) redirect("/admin/chatbot?error=markdown-file");
-  const file = parsedFile.data;
+  const file = parseActionInput(
+    markdownFileSchema,
+    formData.get("markdown_file"),
+    "/admin/chatbot?error=markdown-file",
+  );
   const markdown = await file.text();
   const fallbackTitle = file.name.replace(/\.md$/i, "").trim().slice(0, 100) || "Markdown資料";
   const drafts = parseMarkdownKnowledge(markdown, fallbackTitle);
@@ -113,6 +127,6 @@ export async function importChatbotMarkdown(formData: FormData) {
   if (error) redirect("/admin/chatbot?error=markdown-import");
   const { error: cleanupError } = await client.from("chatbot_knowledge").delete().eq("source_type", "markdown").eq("source_name", sourceName).neq("source_hash", sourceHash);
   if (cleanupError) redirect("/admin/chatbot?error=markdown-import");
-  await client.from("audit_logs").insert({ actor_id: user.id, action: "chatbot.knowledge.import_markdown", target_type: "chatbot_knowledge" });
+  await writeAuditLog(client, { actorId: user.id, action: "chatbot.knowledge.import_markdown", targetType: "chatbot_knowledge" });
   redirect(`/admin/chatbot?imported=${data?.length ?? 0}`);
 }

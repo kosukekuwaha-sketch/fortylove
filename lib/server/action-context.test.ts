@@ -20,7 +20,7 @@ vi.mock("@/lib/db", () => ({
   }),
 }));
 
-import { requireAdmin, requireSuperAdmin } from "./action-context";
+import { requireAdmin, requireSession, requireSuperAdmin } from "./action-context";
 
 const session = { id: "550e8400-e29b-41d4-a716-446655440000" };
 
@@ -34,6 +34,12 @@ describe("Server Action authorization boundary", () => {
   it("rejects unauthenticated requests before database access", async () => {
     mocks.getSession.mockResolvedValue(null);
     await expect(requireAdmin()).rejects.toThrow("REDIRECT:/login");
+    expect(mocks.single).not.toHaveBeenCalled();
+  });
+
+  it("returns an authenticated session without a database lookup", async () => {
+    mocks.getSession.mockResolvedValue(session);
+    await expect(requireSession()).resolves.toEqual(session);
     expect(mocks.single).not.toHaveBeenCalled();
   });
 
