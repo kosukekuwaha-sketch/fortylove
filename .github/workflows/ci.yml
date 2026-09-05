@@ -2,7 +2,15 @@ name: CI
 
 on:
   pull_request:
+    branches:
+      - main
   push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -32,20 +40,41 @@ jobs:
       PGDATABASE: fortylove_test
     steps:
       - uses: actions/checkout@v4
-      - run: psql -v ON_ERROR_STOP=1 -c "create role service_role noinherit"
-      - run: psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
-      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/storage_stub.sql
-      - run: psql -v ON_ERROR_STOP=1 -f supabase/inspect_current.sql
-      - run: psql -v ON_ERROR_STOP=1 -f supabase/manual/production_upgrade_20260905.sql
-      - run: psql -v ON_ERROR_STOP=1 -f supabase/verify_production.sql
-      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/p0_quality.sql
+        with:
+          fetch-depth: 0
+      - name: Classify changed files
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash .github/scripts/classify-ci-changes.sh
+      - name: Skip database integration for low-risk changes
+        if: steps.changes.outputs.database != 'true'
+        run: echo "No database-sensitive changes detected."
+      - if: steps.changes.outputs.database == 'true'
+        run: psql -v ON_ERROR_STOP=1 -c "create role service_role noinherit"
+      - if: steps.changes.outputs.database == 'true'
+        run: psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
+      - if: steps.changes.outputs.database == 'true'
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/storage_stub.sql
+      - if: steps.changes.outputs.database == 'true'
+        run: psql -v ON_ERROR_STOP=1 -f supabase/inspect_current.sql
+      - if: steps.changes.outputs.database == 'true'
+        run: psql -v ON_ERROR_STOP=1 -f supabase/manual/production_upgrade_20260905.sql
+      - if: steps.changes.outputs.database == 'true'
+        run: psql -v ON_ERROR_STOP=1 -f supabase/verify_production.sql
+      - if: steps.changes.outputs.database == 'true'
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/p0_quality.sql
       - name: Prepare reservation concurrency test
+        if: steps.changes.outputs.database == 'true'
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/reservation_concurrency_setup.sql
       - name: Race 20 reservations for one remaining seat
+        if: steps.changes.outputs.database == 'true'
         run: |
           seq -w 000000000001 000000000020 | xargs -P 20 -I {} \
             psql -v ON_ERROR_STOP=1 -Atc "select public.reserve_event('20000000-0000-0000-0000-{}'::uuid, '10000000-0000-0000-0000-000000000001'::uuid)"
       - name: Verify reservation capacity after concurrency
+        if: steps.changes.outputs.database == 'true'
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/reservation_concurrency_assert.sql
 
   verify:
@@ -53,6 +82,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Classify changed files
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash .github/scripts/classify-ci-changes.sh
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -63,11 +100,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm build
+      - name: Build application
+        if: steps.changes.outputs.heavy_verify == 'true'
+        run: pnpm build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-key
           SESSION_SECRET: ci-only-session-secret-at-least-32-characters
           CRON_SECRET: ci-only-cron-secret
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e:smoke
+      - name: Install Playwright Chromium
+        if: steps.changes.outputs.heavy_verify == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run Playwright smoke tests
+        if: steps.changes.outputs.heavy_verify == 'true'
+        run: pnpm test:e2e:smoke
