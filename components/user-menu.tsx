@@ -8,7 +8,10 @@ export function UserMenu({ name, avatarUrl }: { name: string; avatarUrl?: string
     <details className="user-menu">
       <summary className={`avatar${avatarUrl ? " has-image" : ""}`} aria-label="アカウントメニューを開く">
         <span className="mobile-menu-label"><Menu /><span>メニュー</span></span>
-        <span className="avatar-content">{avatarUrl ? <img src={avatarUrl} alt="" /> : name.slice(0, 1)}</span>
+        <span className="avatar-content">{avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- Public Supabase avatar URLs are already resized by CSS and must support the configured project host.
+          <img src={avatarUrl} alt="" />
+        ) : name.slice(0, 1)}</span>
       </summary>
       <div className="user-menu-panel">
         <p>{name}さん</p>
