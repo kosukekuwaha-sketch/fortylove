@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import type { SessionUser } from "./types";
+import { db } from "./db";
 
 const COOKIE = "courtside_session";
 const secret = () => process.env.SESSION_SECRET ?? "";
@@ -24,7 +25,15 @@ function decode(token?: string): SessionUser | null {
 }
 
 export async function getSession() {
-  return decode((await cookies()).get(COOKIE)?.value);
+  const session = decode((await cookies()).get(COOKIE)?.value);
+  if (!session || !Number.isInteger(session.session_version)) return null;
+  const { data: user, error } = await db()
+    .from("users")
+    .select("id,name,role,session_version")
+    .eq("id", session.id)
+    .maybeSingle();
+  if (error || !user || user.session_version !== session.session_version) return null;
+  return user as SessionUser;
 }
 
 export async function setSession(user: SessionUser) {

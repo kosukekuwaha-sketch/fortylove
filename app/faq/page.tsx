@@ -4,7 +4,7 @@ import { MemberNav } from "@/components/member-nav";
 import { UserMenu } from "@/components/user-menu";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { submitFaqQuestion } from "@/app/faq-actions";
+import { submitFaqQuestion } from "@/app/server-actions/faq-actions";
 import { ChatbotWidget } from "@/components/chatbot-widget";
 
 export const dynamic = "force-dynamic";

@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { tokyoLocalToIso } from "@/lib/datetime";
-import { formText, requireAdmin } from "@/lib/server/action-context";
+import { requireAdmin } from "@/lib/server/action-context";
+import { formText } from "@/lib/server/form-data";
 import { isOwnedEventDocumentUploadPath, isValidEventDocumentName } from "@/lib/event-document-policy";
 import { attachUploadedEventDocument, EVENT_DOCUMENT_BUCKET, removeEventDocument, removeUploadedEventDocument } from "@/lib/server/event-documents";
 

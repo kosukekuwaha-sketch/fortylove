@@ -1,4 +1,4 @@
-import { updateRecruitingStatus } from "@/app/settings-actions";
+import { updateRecruitingStatus } from "@/app/server-actions/settings-actions";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { db } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/server/action-context";

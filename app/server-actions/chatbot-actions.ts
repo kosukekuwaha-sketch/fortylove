@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { createHash } from "crypto";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { formText, requireSuperAdmin } from "@/lib/server/action-context";
+import { requireSuperAdmin } from "@/lib/server/action-context";
+import { formText } from "@/lib/server/form-data";
 import { parseMarkdownKnowledge } from "@/lib/markdown-knowledge";
 import { isMissingColumnError } from "@/lib/supabase-errors";
 

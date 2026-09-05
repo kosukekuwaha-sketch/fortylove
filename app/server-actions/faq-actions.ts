@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { formText, requireAdmin } from "@/lib/server/action-context";
+import { requireAdmin } from "@/lib/server/action-context";
+import { formText } from "@/lib/server/form-data";
 
 export async function submitFaqQuestion(formData: FormData) {
   const user = await getSession();

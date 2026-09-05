@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { cleanupStaleEventDocumentUploads } from "@/lib/server/event-documents";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +9,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const year = new Date().getUTCFullYear();
-  const { data, error } = await db().rpc("promote_member_grades", { p_year: year });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, ...(data as { updated: number; skipped: boolean }) });
+  const result = await cleanupStaleEventDocumentUploads();
+  if (result.errors > 0) {
+    return NextResponse.json({ error: "Storage cleanup was incomplete", ...result }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true, ...result });
 }

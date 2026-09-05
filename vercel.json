@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/promote-grades",
       "schedule": "0 0 1 4 *"
+    },
+    {
+      "path": "/api/cron/cleanup-event-uploads",
+      "schedule": "0 18 * * *"
     }
   ]
 }
