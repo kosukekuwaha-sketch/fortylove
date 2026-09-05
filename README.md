@@ -149,6 +149,8 @@ Markdown参照元の保存時に設定列がない旨が表示された場合は
 
 ## CI・デプロイ
 
+本番コードとSupabaseの統合は完了しています。外部サービス設定が必要なGemini API、Brevoメール通知、Vercel Cronは[本番環境の保留TODO](docs/operations/production-todo.md)で管理します。SecretやAPIキーの実値はGitへ保存しません。
+
 `.github/workflows/ci.yml`により、`main`へのpushとPull Requestで以下を自動実行します。
 
 1. 依存関係の固定インストール
