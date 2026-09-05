@@ -17,6 +17,7 @@ import {
   loginRateLimitKey,
 } from "@/lib/login-rate-limit";
 import { isValidNewPassword } from "@/lib/password-policy";
+import { writeAuditLog } from "@/lib/server/audit-log";
 import { formText } from "@/lib/server/form-data";
 import { configuredSupabaseRole } from "@/lib/server/supabase-diagnostics";
 
@@ -72,7 +73,7 @@ export async function login(formData: FormData) {
       redirect("/login?error=server");
     }
     if (failures.some((failure) => Number(failure.data ?? 0) > 0)) {
-      await client.from("audit_logs").insert({ action: "auth.login.rate_limited", target_type: "login" });
+      await writeAuditLog(client, { action: "auth.login.rate_limited", targetType: "login" });
       redirect("/login?error=rate-limit");
     }
     redirect("/login?error=1");
@@ -104,7 +105,7 @@ export async function register(formData: FormData) {
     redirect("/register?error=server");
   }
   if (!registrationAllowed) {
-    await client.from("audit_logs").insert({ action: "auth.registration.rate_limited", target_type: "registration" });
+    await writeAuditLog(client, { action: "auth.registration.rate_limited", targetType: "registration" });
     redirect("/register?error=rate-limit");
   }
 

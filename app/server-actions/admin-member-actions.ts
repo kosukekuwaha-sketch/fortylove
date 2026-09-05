@@ -3,7 +3,9 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { parseActionInput } from "@/lib/server/action-input";
 import { requireAdmin, requireSuperAdmin } from "@/lib/server/action-context";
+import { writeAuditLog, writeAuditLogs } from "@/lib/server/audit-log";
 import { removeAvatarFiles } from "@/lib/server/avatar-service";
 import { formText } from "@/lib/server/form-data";
 import { archiveAndDeleteMember } from "@/lib/server/member-account-service";
@@ -26,34 +28,36 @@ export async function updateUserRole(formData: FormData) {
   const client = db();
   const { data: updated, error } = await client.rpc("set_user_role", { p_user_id: userId, p_role: role });
   if (error || !updated) redirect("/admin/admins?error=role-update");
-  await client.from("audit_logs").insert({ actor_id: actor.id, action: "user.role.update", target_type: "user", target_id: userId });
+  await writeAuditLog(client, {
+    actorId: actor.id, action: "user.role.update", targetType: "user", targetId: userId,
+  });
   redirect("/admin/admins?role_updated=1");
 }
 
 export async function updateUsersRole(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const parsed = updateRolesInputSchema.safeParse({
+  const { user_ids: userIds, role } = parseActionInput(updateRolesInputSchema, {
     user_ids: [...new Set(formData.getAll("user_ids").map(String))].filter((id) => id !== actor.id),
     role: formText(formData, "role"),
-  });
-  if (!parsed.success) redirect("/admin/admins?error=selection");
-  const { user_ids: userIds, role } = parsed.data;
+  }, "/admin/admins?error=selection");
 
   const client = db();
   const updates = await Promise.all(userIds.map((userId) =>
     client.rpc("set_member_role", { p_user_id: userId, p_role: role })));
   if (updates.some((result) => result.error || result.data !== true)) redirect("/admin/admins?error=role-update");
-  await client.from("audit_logs").insert(userIds.map((targetId) => ({
-    actor_id: actor.id, action: "user.role.update", target_type: "user", target_id: targetId,
+  await writeAuditLogs(client, userIds.map((targetId) => ({
+    actorId: actor.id, action: "user.role.update", targetType: "user", targetId,
   })));
   redirect(`/admin/admins?role_updated=${userIds.length}`);
 }
 
 export async function resetUserPassword(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const parsed = resetPasswordInputSchema.safeParse({ user_id: formText(formData, "user_id"), temporary_password: formText(formData, "temporary_password") });
-  if (!parsed.success) redirect("/admin?error=password");
-  const { user_id: userId, temporary_password: temporaryPassword } = parsed.data;
+  const { user_id: userId, temporary_password: temporaryPassword } = parseActionInput(
+    resetPasswordInputSchema,
+    { user_id: formText(formData, "user_id"), temporary_password: formText(formData, "temporary_password") },
+    "/admin?error=password",
+  );
 
   const client = db();
   const { data: updated, error } = await client.rpc("replace_user_password", {
@@ -61,15 +65,19 @@ export async function resetUserPassword(formData: FormData) {
     p_password_hash: await bcrypt.hash(temporaryPassword, 12),
   });
   if (error || !updated) redirect("/admin?error=password-update");
-  await client.from("audit_logs").insert({ actor_id: actor.id, action: "user.password.reset", target_type: "user", target_id: userId });
+  await writeAuditLog(client, {
+    actorId: actor.id, action: "user.password.reset", targetType: "user", targetId: userId,
+  });
   redirect("/admin?password_reset=1");
 }
 
 export async function registerJoinedMember(formData: FormData) {
   const actor = await requireAdmin();
-  const parsed = userIdInputSchema.safeParse({ user_id: formText(formData, "user_id") });
-  if (!parsed.success) redirect("/admin/members?error=membership-register");
-  const userId = parsed.data.user_id;
+  const { user_id: userId } = parseActionInput(
+    userIdInputSchema,
+    { user_id: formText(formData, "user_id") },
+    "/admin/members?error=membership-register",
+  );
 
   const client = db();
   const { error } = await client.from("membership_applications").upsert(
@@ -77,15 +85,19 @@ export async function registerJoinedMember(formData: FormData) {
     { onConflict: "user_id" },
   );
   if (error) redirect("/admin/members?error=membership-register");
-  await client.from("audit_logs").insert({ actor_id: actor.id, action: "membership.register.direct", target_type: "user", target_id: userId });
+  await writeAuditLog(client, {
+    actorId: actor.id, action: "membership.register.direct", targetType: "user", targetId: userId,
+  });
   redirect("/admin/members?membership_registered=1");
 }
 
 export async function deleteMemberAccount(formData: FormData) {
   const actor = await requireAdmin();
-  const parsed = userIdInputSchema.safeParse({ user_id: formText(formData, "user_id") });
-  if (!parsed.success) redirect("/admin/members?error=delete");
-  const userId = parsed.data.user_id;
+  const { user_id: userId } = parseActionInput(
+    userIdInputSchema,
+    { user_id: formText(formData, "user_id") },
+    "/admin/members?error=delete",
+  );
   if (!await archiveAndDeleteMember(userId, actor.id, "admin")) redirect("/admin/members?error=delete");
   await removeAvatarFiles(userId);
   redirect("/admin/members?deleted=1");
@@ -93,9 +105,11 @@ export async function deleteMemberAccount(formData: FormData) {
 
 export async function deleteReceptionAccount(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const parsed = userIdInputSchema.safeParse({ user_id: formText(formData, "user_id") });
-  if (!parsed.success) redirect("/admin?error=delete");
-  const userId = parsed.data.user_id;
+  const { user_id: userId } = parseActionInput(
+    userIdInputSchema,
+    { user_id: formText(formData, "user_id") },
+    "/admin?error=delete",
+  );
   if (!await archiveAndDeleteMember(userId, actor.id, "admin")) redirect("/admin?error=delete");
   await removeAvatarFiles(userId);
   redirect("/admin?deleted=1");
@@ -103,9 +117,11 @@ export async function deleteReceptionAccount(formData: FormData) {
 
 export async function restoreWithdrawalAccount(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const parsed = restoreWithdrawalInputSchema.safeParse({ withdrawal_id: formText(formData, "withdrawal_id"), temporary_password: formText(formData, "temporary_password") });
-  if (!parsed.success) redirect("/admin/withdrawals?error=password");
-  const { withdrawal_id: withdrawalId, temporary_password: temporaryPassword } = parsed.data;
+  const { withdrawal_id: withdrawalId, temporary_password: temporaryPassword } = parseActionInput(
+    restoreWithdrawalInputSchema,
+    { withdrawal_id: formText(formData, "withdrawal_id"), temporary_password: formText(formData, "temporary_password") },
+    "/admin/withdrawals?error=password",
+  );
 
   const client = db();
   const { data: archived, error: archiveError } = await client.from("membership_withdrawals")
@@ -131,17 +147,19 @@ export async function restoreWithdrawalAccount(formData: FormData) {
     await client.from("users").delete().eq("id", archived.former_user_id);
     redirect("/admin/withdrawals?error=restore");
   }
-  await client.from("audit_logs").insert({
-    actor_id: actor.id, action: "account.restore.withdrawal", target_type: "user", target_id: archived.former_user_id,
+  await writeAuditLog(client, {
+    actorId: actor.id, action: "account.restore.withdrawal", targetType: "user", targetId: archived.former_user_id,
   });
   redirect("/admin/withdrawals?restored=1");
 }
 
 export async function deleteMemberAccounts(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const parsed = userIdsInputSchema.safeParse({ user_ids: [...new Set(formData.getAll("user_ids").map(String))] });
-  if (!parsed.success) redirect("/admin/members?error=selection");
-  const userIds = parsed.data.user_ids;
+  const { user_ids: userIds } = parseActionInput(
+    userIdsInputSchema,
+    { user_ids: [...new Set(formData.getAll("user_ids").map(String))] },
+    "/admin/members?error=selection",
+  );
 
   let deleted = 0;
   for (const userId of userIds) {
@@ -155,15 +173,17 @@ export async function deleteMemberAccounts(formData: FormData) {
 
 export async function deleteWithdrawalRecords(formData: FormData) {
   const actor = await requireSuperAdmin();
-  const parsed = withdrawalIdsInputSchema.safeParse({ withdrawal_ids: [...new Set(formData.getAll("withdrawal_ids").map(String))] });
-  if (!parsed.success) redirect("/admin/withdrawals?error=selection");
-  const ids = parsed.data.withdrawal_ids;
+  const { withdrawal_ids: ids } = parseActionInput(
+    withdrawalIdsInputSchema,
+    { withdrawal_ids: [...new Set(formData.getAll("withdrawal_ids").map(String))] },
+    "/admin/withdrawals?error=selection",
+  );
 
   const client = db();
   const { error } = await client.from("membership_withdrawals").delete().in("id", ids);
   if (error) redirect("/admin/withdrawals?error=delete");
-  await client.from("audit_logs").insert({
-    actor_id: actor.id, action: "withdrawal.archive.delete", target_type: "membership_withdrawals",
+  await writeAuditLog(client, {
+    actorId: actor.id, action: "withdrawal.archive.delete", targetType: "membership_withdrawals",
   });
   redirect(`/admin/withdrawals?deleted=${ids.length}`);
 }
