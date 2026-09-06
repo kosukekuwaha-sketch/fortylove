@@ -69,7 +69,7 @@ Pull RequestではLint・型検査・単体テストを常に実行し、変更�
 - [Chatbot・FAQ改善の反映手順](docs/operations/chatbot-experience-rollout.md)
 - [監視・品質試験の導入手順](docs/operations/quality-rollout.md)
 - [データベース更新手順](docs/operations/database-migrations.md)
-- [本番環境の保留TODO](docs/operations/production-todo.md)
+- [本番運用チェックリスト](docs/operations/production-todo.md)
 
 ## セキュリティ
 
