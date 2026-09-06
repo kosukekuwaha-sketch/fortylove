@@ -60,7 +60,7 @@ pnpm build
 
 通常の変更は、上記をまとめて実行する`pnpm check`でも確認できます。ブラウザテストは`pnpm test:e2e`、Chatbot・FAQのPC／スマホ操作確認は`pnpm test:e2e:experience`を使用します。
 
-Pull RequestではLint・型検査・単体テストを常に実行し、変更内容に応じてDB統合テスト、ビルド、E2Eテストを追加します。`main`への反映時は全検査を実行します。
+Pull RequestではLint・型検査・単体テストを常に実行し、変更内容に応じてDB統合テスト、ビルド、E2Eテストを追加します。README・`docs/`配下・`.docx`だけの変更では重い検査を省略し、`main`への反映時は全検査を実行します。
 
 ## ドキュメント
 
