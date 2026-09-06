@@ -390,3 +390,134 @@ grant execute on function promote_member_grades(integer) to service_role;
 
 -- This app only accesses the database from trusted Next.js server code using the service role.
 -- Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.
+
+-- Chatbot experience (2026-09-06)
+begin;
+
+alter table public.chatbot_knowledge add column if not exists embedding real[];
+alter table public.faqs add column if not exists embedding real[];
+-- Keep the old upsert constraint compatible with the currently deployed application.
+create index if not exists chatbot_knowledge_source_name_idx
+  on public.chatbot_knowledge(source_name);
+
+create or replace function public.replace_chatbot_source(p_actor uuid, p_name text, p_hash text, p_rows jsonb)
+returns integer language plpgsql security definer set search_path = public as $$
+declare v_count integer;
+begin
+  if not exists(select 1 from users where id = p_actor and role = 'super_admin') then raise exception 'Forbidden'; end if;
+  if p_name is null or length(p_name) not between 1 and 255 or p_name !~* '\.md$'
+    or p_hash is null or p_hash !~ '^[0-9a-f]{64}$'
+    or jsonb_typeof(p_rows) is distinct from 'array' then raise exception 'Invalid source'; end if;
+  v_count := jsonb_array_length(p_rows);
+  if v_count not between 1 and 1000 then raise exception 'Invalid record count'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('chatbot.source.' || p_name, 0));
+  delete from chatbot_knowledge where source_type = 'markdown' and source_name = p_name;
+  insert into chatbot_knowledge(title,content,category,keywords,source_type,source_name,source_section,source_hash,created_by,updated_by,embedding)
+    select r.title,r.content,r.category,r.keywords,'markdown',p_name,r.source_section,p_name || ':' || p_hash,p_actor,p_actor,r.embedding
+    from jsonb_to_recordset(p_rows) as r(title text,content text,category text,keywords text[],source_section text,embedding real[]);
+  if exists(select 1 from chatbot_knowledge where source_name = p_name and (embedding is null or cardinality(embedding) <> 768)) then
+    raise exception 'Incomplete embeddings';
+  end if;
+  insert into audit_logs(actor_id,action,target_type) values(p_actor,'chatbot.knowledge.import_markdown','chatbot_knowledge');
+  return v_count;
+end $$;
+
+create or replace function public.chatbot_source_inventory()
+returns table(source_name text, record_count bigint, updated_at timestamptz, embedded_count bigint)
+language sql stable security definer set search_path = public as $$
+  select k.source_name,count(*),max(k.updated_at),count(k.embedding)
+  from chatbot_knowledge k where source_type = 'markdown' group by k.source_name order by k.source_name;
+$$;
+
+create or replace function public.chatbot_semantic_matches(p_sources text[], p_query real[])
+returns table(id uuid, similarity double precision)
+language sql stable security definer set search_path = public as $$
+  with permitted as (
+    select k.id,k.embedding from chatbot_knowledge k where k.source_type = 'markdown' and k.source_name = any(p_sources)
+    union all select f.id,f.embedding from faqs f where f.is_published = true
+  ), scored as (
+    select p.id, (select sum(v::double precision * p_query[i]) /
+      nullif(sqrt(sum(v::double precision * v)) * sqrt(sum(p_query[i]::double precision * p_query[i])),0)
+      from unnest(p.embedding) with ordinality as e(v,i)) as similarity
+    from permitted p where cardinality(p.embedding) = 768 and cardinality(p_query) = 768
+  ) select * from scored where similarity >= 0.68 order by similarity desc limit 20;
+$$;
+
+create or replace function public.reorder_faqs(p_actor uuid, p_ids uuid[])
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not exists(select 1 from users where id=p_actor and role in ('admin','super_admin')) then raise exception 'Forbidden'; end if;
+  lock table faqs in share row exclusive mode;
+  if p_ids is null or cardinality(p_ids) > 10000 or cardinality(p_ids) <> (select count(*) from faqs)
+    or cardinality(p_ids) <> (select count(distinct x) from unnest(p_ids) x)
+    or exists(select 1 from unnest(p_ids) x where not exists(select 1 from faqs where id=x)) then raise exception 'FAQ list changed'; end if;
+  update faqs f set sort_order=s.n-1, updated_at=now() from unnest(p_ids) with ordinality s(id,n) where f.id=s.id;
+  insert into audit_logs(actor_id,action,target_type) values(p_actor,'faq.reorder','faq');
+end $$;
+
+revoke all on function public.replace_chatbot_source(uuid,text,text,jsonb) from public;
+revoke all on function public.chatbot_source_inventory() from public;
+revoke all on function public.chatbot_semantic_matches(text[],real[]) from public;
+revoke all on function public.reorder_faqs(uuid,uuid[]) from public;
+grant execute on function public.replace_chatbot_source(uuid,text,text,jsonb), public.chatbot_source_inventory(), public.chatbot_semantic_matches(text[],real[]), public.reorder_faqs(uuid,uuid[]) to service_role;
+notify pgrst, 'reload schema';
+commit;
+
+begin;
+
+create table if not exists public.ops_notification_settings (
+  id smallint primary key default 1 check (id = 1),
+  email text check (email is null or (length(email) <= 254 and email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$')),
+  health_enabled boolean not null default false,
+  errors_enabled boolean not null default false,
+  updated_at timestamptz not null default now(),
+  check ((not health_enabled and not errors_enabled) or email is not null)
+);
+insert into public.ops_notification_settings(id) values(1) on conflict do nothing;
+alter table public.ops_notification_settings enable row level security;
+revoke all on public.ops_notification_settings from public;
+grant select,insert,update,delete on public.ops_notification_settings to service_role;
+
+create table if not exists public.ops_notification_deliveries (
+  delivery_key text primary key check (length(delivery_key) between 1 and 128),
+  lease uuid,
+  leased_until timestamptz,
+  sent_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.ops_notification_deliveries enable row level security;
+revoke all on public.ops_notification_deliveries from public;
+grant select,insert,update,delete on public.ops_notification_deliveries to service_role;
+
+create or replace function public.update_ops_notification_settings(p_actor uuid,p_email text,p_health boolean,p_errors boolean)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists(select 1 from users where id=p_actor and role='super_admin') then raise exception 'Forbidden'; end if;
+  if p_health is null or p_errors is null then raise exception 'Invalid settings'; end if;
+  update ops_notification_settings set email=nullif(trim(p_email),''),health_enabled=p_health,errors_enabled=p_errors,updated_at=clock_timestamp() where id=1;
+  if not found then raise exception 'Missing settings'; end if;
+  insert into audit_logs(actor_id,action,target_type) values(p_actor,'ops.notification.settings.update','ops_settings');
+end $$;
+
+create or replace function public.claim_ops_delivery(p_key text)
+returns uuid language plpgsql security definer set search_path=public as $$
+declare v_lease uuid := gen_random_uuid(); v_sent timestamptz; v_until timestamptz;
+begin
+  insert into ops_notification_deliveries(delivery_key) values(p_key) on conflict do nothing;
+  select sent_at,leased_until into v_sent,v_until from ops_notification_deliveries where delivery_key=p_key for update;
+  if v_sent is not null or v_until>now() then return null; end if;
+  update ops_notification_deliveries set lease=v_lease,leased_until=now()+interval '2 minutes' where delivery_key=p_key;
+  return v_lease;
+end $$;
+
+create or replace function public.finish_ops_delivery(p_key text,p_lease uuid,p_sent boolean)
+returns void language plpgsql security definer set search_path=public as $$
+begin
+  update ops_notification_deliveries set sent_at=case when p_sent then now() else sent_at end,leased_until=null,lease=null
+  where delivery_key=p_key and lease=p_lease;
+end $$;
+
+revoke all on function public.update_ops_notification_settings(uuid,text,boolean,boolean),public.claim_ops_delivery(text),public.finish_ops_delivery(text,uuid,boolean) from public;
+grant execute on function public.update_ops_notification_settings(uuid,text,boolean,boolean),public.claim_ops_delivery(text),public.finish_ops_delivery(text,uuid,boolean) to service_role;
+notify pgrst,'reload schema';
+commit;

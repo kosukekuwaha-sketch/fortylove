@@ -1,3 +1,4 @@
+import { FormFeedback } from "@/components/form-feedback";
 import Link from "next/link";
 import { Brand } from "@/components/brand";
 import { UniversityFields } from "@/components/university-fields";
@@ -9,11 +10,12 @@ export default async function Register({ searchParams }: { searchParams: Promise
   const { error } = await searchParams;
   const { data: settings } = await db().from("app_settings").select("recruiting_open").eq("id", 1).maybeSingle();
   const recruitingOpen = settings?.recruiting_open ?? true;
+  if (!recruitingOpen) return <main className="registration-closed"><Brand /><div className="closed-orbit" aria-hidden="true">♡</div><p className="eyebrow green">THANK YOU</p><h1>今年度の新歓は終了しました！</h1><p>たくさんのご参加ありがとうございました！</p><Link className="primary" href="/login">登録済みの方はこちら</Link></main>;
   return <main className="form-page"><header><Brand /><Link href="/login">ログインへ</Link></header>
     <section className="form-card"><p className="eyebrow green">EXPERIENCE Fortylove</p><h1>新歓受付登録</h1><p className="muted">{recruitingOpen ? "基本情報を入力すると、すぐに練習を予約できます。" : "現在は新規登録を受け付けていません。"}</p>
       {!recruitingOpen && <div className="alert">現在、新歓受付登録を停止しています。受付再開までお待ちください。</div>}
       {recruitingOpen && error && <div className="alert">{error === "closed" ? "新歓受付は終了しました。" : error === "duplicate" ? "同じ名前とパスワードの登録があります。別のパスワードを設定してください。" : error === "password" ? "パスワードは8文字以上で設定してください。" : error === "rate-limit" ? "短時間の登録試行が上限に達しました。1時間後にもう一度お試しください。" : "登録できませんでした。入力内容をご確認ください。"}</div>}
-      {recruitingOpen && <form id="registration-form" action={register} className="grid-form">
+      {recruitingOpen && <form id="registration-form" action={register} className="grid-form"><FormFeedback />
         <RegistrationDraftKeeper />
         <label className="full">名前<input name="name" placeholder="山田 太郎" required /></label>
         <UniversityFields />

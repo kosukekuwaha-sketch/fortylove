@@ -1,7 +1,7 @@
 # Fortylove 品質要件定義書
 
 - 対象システム: 早大Fortylove 新歓管理アプリ
-- 対象リポジトリ: `kosukekuwaha-sketch/fortylove`
+- 対象リポジトリ: `kukukucode/fortylove`
 - 文書種別: 品質要件定義書
 - 目的: 本番運用に必要な品質特性を網羅的に定義し、設計・実装・テスト・運用・リリース判定の共通基準とする
 - 想定構成: Next.js / React / TypeScript / Supabase PostgreSQL・Storage / Vercel

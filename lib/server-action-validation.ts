@@ -88,11 +88,3 @@ export const chatbotAudienceSourcesInputSchema = z.object({
 });
 export const escalationEmailSchema = z.union([z.literal(""), z.string().trim().email().max(254)]);
 export const markdownSourceNameSchema = trimmedText(1, 255);
-export const markdownFileSchema = z.instanceof(File).superRefine((file, context) => {
-  if (!file.name.toLocaleLowerCase().endsWith(".md")) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "Markdownファイルを選択してください" });
-  }
-  if (file.size < 1 || file.size > 512 * 1024) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "ファイルサイズが範囲外です" });
-  }
-});

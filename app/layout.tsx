@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./features.css";
+import "./experience.css";
+import { NavigationFeedback } from "@/components/navigation-feedback";
 import { ScrollToTop } from "@/components/scroll-to-top";
 
 export const metadata: Metadata = {
@@ -11,7 +13,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ja">
-      <body>{children}<ScrollToTop /></body>
+      <body><NavigationFeedback />{children}<ScrollToTop /></body>
     </html>
   );
 }

@@ -4,4 +4,10 @@ node_modules
 .env
 .env.local
 npm-debug.log*
+/debug.log
 *.tsbuildinfo
+test-results/
+playwright-report/
+.ops-cache/
+.ops-reports/
+.backup-drill/

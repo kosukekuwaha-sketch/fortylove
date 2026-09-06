@@ -1,0 +1,39 @@
+name: External health monitor
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fortylove-external-monitor
+  cancel-in-progress: false
+jobs:
+  monitor:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache/restore@v4
+        with:
+          path: .ops-cache
+          key: ops-monitor-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ops-monitor-v1-
+      - name: Check health and notify the saved super-admin recipient
+        run: node scripts/ops/monitor.mjs
+        env:
+          MONITOR_URL: ${{ vars.MONITOR_URL }}
+          MONITOR_SECRET: ${{ secrets.MONITOR_SECRET }}
+          MONITOR_STATE_KEY: ${{ secrets.MONITOR_STATE_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
+          BREVO_SENDER_NAME: Fortylove
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .ops-cache
+          key: ops-monitor-v1-${{ github.run_id }}-${{ github.run_attempt }}

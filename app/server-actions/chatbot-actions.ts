@@ -1,19 +1,16 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/server/action-context";
 import { parseActionInput } from "@/lib/server/action-input";
 import { writeAuditLog } from "@/lib/server/audit-log";
 import { formText } from "@/lib/server/form-data";
-import { parseMarkdownKnowledge } from "@/lib/markdown-knowledge";
 import { isMissingColumnError } from "@/lib/supabase-errors";
 import {
   chatbotAudienceAccessInputSchema,
   chatbotAudienceSourcesInputSchema,
   escalationEmailSchema,
-  markdownFileSchema,
   markdownSourceNameSchema,
 } from "@/lib/server-action-validation";
 
@@ -42,8 +39,8 @@ export async function updateChatbotAudienceSources(formData: FormData) {
   );
   const client = db();
   if (validatedSourceNames.length) {
-    const { data: available, error: sourceError } = await client.from("chatbot_knowledge").select("source_name").eq("source_type", "markdown").in("source_name", validatedSourceNames);
-    const availableNames = new Set((available ?? []).map((item) => item.source_name));
+    const { data: available, error: sourceError } = await client.rpc("chatbot_source_inventory");
+    const availableNames = new Set((available ?? []).map((item: { source_name: string }) => item.source_name));
     if (sourceError) {
       console.error("Failed to verify chatbot Markdown sources", { code: sourceError.code, message: sourceError.message, details: sourceError.details });
       redirect("/admin/chatbot?error=sources-read");
@@ -92,41 +89,4 @@ export async function deleteChatbotMarkdownSource(formData: FormData) {
   }).eq("id", 1);
   await writeAuditLog(client, { actorId: user.id, action: "chatbot.knowledge.delete_markdown", targetType: "chatbot_knowledge" });
   redirect("/admin/chatbot?source_deleted=1");
-}
-
-export async function importChatbotMarkdown(formData: FormData) {
-  const user = await requireSuperAdmin();
-  const file = parseActionInput(
-    markdownFileSchema,
-    formData.get("markdown_file"),
-    "/admin/chatbot?error=markdown-file",
-  );
-  const markdown = await file.text();
-  const fallbackTitle = file.name.replace(/\.md$/i, "").trim().slice(0, 100) || "Markdown資料";
-  const drafts = parseMarkdownKnowledge(markdown, fallbackTitle);
-  if (!drafts.length) redirect("/admin/chatbot?error=markdown-empty");
-  const sourceHash = createHash("sha256").update(markdown, "utf8").digest("hex");
-  const sourceName = file.name.slice(0, 255);
-  const client = db();
-  const rows = drafts.map((draft) => ({
-    title: draft.title,
-    content: draft.content,
-    category: draft.category,
-    keywords: draft.keywords,
-    priority: 0,
-    is_active: true,
-    source_type: "markdown",
-    source_name: sourceName,
-    source_section: draft.sourceSection,
-    source_hash: sourceHash,
-    created_by: user.id,
-    updated_by: user.id,
-    updated_at: new Date().toISOString(),
-  }));
-  const { data, error } = await client.from("chatbot_knowledge").upsert(rows, { onConflict: "source_hash,source_section" }).select("id");
-  if (error) redirect("/admin/chatbot?error=markdown-import");
-  const { error: cleanupError } = await client.from("chatbot_knowledge").delete().eq("source_type", "markdown").eq("source_name", sourceName).neq("source_hash", sourceHash);
-  if (cleanupError) redirect("/admin/chatbot?error=markdown-import");
-  await writeAuditLog(client, { actorId: user.id, action: "chatbot.knowledge.import_markdown", targetType: "chatbot_knowledge" });
-  redirect(`/admin/chatbot?imported=${data?.length ?? 0}`);
 }
