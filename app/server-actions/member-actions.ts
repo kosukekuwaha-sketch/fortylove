@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clearSession, setSession } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -12,28 +11,32 @@ import { removeAvatarFiles, uploadAvatar } from "@/lib/server/avatar-service";
 import { archiveAndDeleteMember } from "@/lib/server/member-account-service";
 import { configuredSupabaseRole } from "@/lib/server/supabase-diagnostics";
 
-export async function reserve(formData: FormData) {
+export type ReservationResult = { error?: "reservation" | "full" | "cancel-deadline" };
+
+export async function reserve(formData: FormData): Promise<ReservationResult> {
   const user = await requireSession();
-  const eventId = parseActionInput(uuidSchema, formText(formData, "event_id"), "/home?error=reservation");
+  const parsed = uuidSchema.safeParse(formText(formData, "event_id"));
+  if (!parsed.success) return { error: "reservation" };
+  const eventId = parsed.data;
 
   const { data, error } = await db().rpc("reserve_event", { p_user_id: user.id, p_event_id: eventId });
-  if (error) redirect("/home?error=reservation");
-  if (data === "full") redirect("/home?error=full");
-  if (!["reserved", "already_reserved"].includes(String(data))) redirect("/home?error=reservation");
-  revalidatePath("/home");
-  redirect(`/home?reserved=${eventId}`);
+  if (error) return { error: "reservation" };
+  if (data === "full") return { error: "full" };
+  if (!["reserved", "already_reserved"].includes(String(data))) return { error: "reservation" };
+  return {};
 }
 
-export async function cancelReservation(formData: FormData) {
+export async function cancelReservation(formData: FormData): Promise<ReservationResult> {
   const user = await requireSession();
-  const eventId = parseActionInput(uuidSchema, formText(formData, "event_id"), "/home?error=reservation");
+  const parsed = uuidSchema.safeParse(formText(formData, "event_id"));
+  if (!parsed.success) return { error: "reservation" };
+  const eventId = parsed.data;
 
   const { data, error } = await db().rpc("cancel_event_reservation", { p_user_id: user.id, p_event_id: eventId });
-  if (error) redirect("/home?error=reservation");
-  if (data === "deadline_passed") redirect("/home?error=cancel-deadline");
-  if (data !== "cancelled") redirect("/home?error=reservation");
-  revalidatePath("/home");
-  redirect("/home?cancelled=1");
+  if (error) return { error: "reservation" };
+  if (data === "deadline_passed") return { error: "cancel-deadline" };
+  if (data !== "cancelled") return { error: "reservation" };
+  return {};
 }
 
 export async function deleteOwnAccount() {

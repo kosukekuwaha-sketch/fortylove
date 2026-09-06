@@ -1,5 +1,10 @@
 /* Shared visual rhythm: warm paper, deep green, restrained movement. */
-:root { --surface-shadow: 0 6px 30px #17251f08; }
+:root { --surface-shadow: 0 6px 30px #17251f08; --muted: #56655d; }
+.auth-box .divider, .auth-box .help { color: #59675f; }
+.calendar-events time, .calendar-event-location { color: #3f6654; opacity: 1; }
+.site-footer .social-link-disabled small { color: #b3c4ba; }
+.site-footer .social-link-disabled { opacity: 1; }
+.form-error { display: block; max-width: 18rem; margin-top: 7px; color: var(--danger); font-size: 12px; line-height: 1.45; }
 body { background: #f5f6f0; }
 :focus-visible { outline: 3px solid #558773; outline-offset: 4px; }
 button:disabled { cursor: not-allowed; opacity: .55; transform: none; }

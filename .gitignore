@@ -8,3 +8,6 @@ npm-debug.log*
 *.tsbuildinfo
 test-results/
 playwright-report/
+.ops-cache/
+.ops-reports/
+.backup-drill/

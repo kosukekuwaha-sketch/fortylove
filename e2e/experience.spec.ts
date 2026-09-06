@@ -104,7 +104,9 @@ test("FAQを折りたたみ、並び順は確定時だけ保存する",async({pa
 test("取り込み前に1001件超過を表示し送信しない",async({page})=>{
   await page.goto("/admin/chatbot");
   const content=Array.from({length:1001},(_,i)=>`## 質問${i}\n回答です。`).join("\n");
-  await page.locator('.import-drop input').setInputFiles({name:"limit.md",mimeType:"text/markdown",buffer:Buffer.from(content)});
+  const input = page.locator('.import-drop input');
+  await expect(input).toBeEnabled();
+  await input.setInputFiles({name:"limit.md",mimeType:"text/markdown",buffer:Buffer.from(content)});
   await expect(page.getByText(/1000件の上限を超えています/)).toBeVisible();
   await expect(page.getByRole("button",{name:"アップロード・再試行"})).toBeDisabled();
 });

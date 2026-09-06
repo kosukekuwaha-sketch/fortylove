@@ -11,15 +11,19 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:smoke": "playwright test e2e/public-auth.spec.ts",
-    "test:e2e:experience": "playwright test -c playwright.experience.config.ts",
+    "test:e2e:smoke": "node scripts/quality/e2e-stack.mjs smoke",
+    "test:e2e:experience": "node scripts/quality/e2e-stack.mjs experience",
+    "test:quality": "node scripts/quality/quality-stack.mjs",
+    "test:quality:setup": "node scripts/quality/setup-db.mjs",
+    "test:restore": "node scripts/quality/restore-drill.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.73.0",
     "@supabase/supabase-js": "^2.52.1",
     "bcryptjs": "^3.0.2",
     "lucide-react": "^0.468.0",
-    "next": "^15.4.4",
+    "next": "15.5.24",
     "pdfjs-dist": "5.4.296",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -27,14 +31,17 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/eslintrc": "^3.3.7",
     "@eslint/js": "^9.39.5",
+    "@next/eslint-plugin-next": "15.5.24",
     "@playwright/test": "^1.62.1",
     "@types/node": "^22.16.5",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "eslint": "^9.39.5",
-    "eslint-config-next": "15.5.22",
+    "eslint-config-next": "15.5.24",
+    "eslint-plugin-react-hooks": "5.2.0",
     "typescript": "^5.8.3",
     "vitest": "^4.1.11"
   }

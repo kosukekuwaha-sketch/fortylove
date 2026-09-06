@@ -2,12 +2,11 @@ import { Clock3, MapPin, UsersRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { cancelReservation, reserve } from "@/app/actions";
 import { Brand } from "@/components/brand";
 import { MemberNav } from "@/components/member-nav";
 import { ClearRegistrationDraft } from "@/components/registration-draft";
 import { UserMenu } from "@/components/user-menu";
-import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { ReservationForm } from "@/components/reservation-form";
 import { SiteFooter } from "@/components/site-footer";
 import { ParticipationCalendar } from "@/components/participation-calendar";
 import { PdfViewer } from "@/components/pdf-viewer";
@@ -64,7 +63,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
         return <article className="event-card" id={`event-${event.id}`} key={event.id}>
           <div className={`event-date${spansMultipleDays ? " date-range" : ""}`}><div><strong><span>{startDate.month}月</span><span>{startDate.day}日</span></strong><span>（{startDate.weekday}）</span></div>{spansMultipleDays && <><b>～</b><div><strong><span>{endDate.month}月</span><span>{endDate.day}日</span></strong><span>（{endDate.weekday}）</span></div></>}</div>
           <div className="event-main"><h3>{event.title}</h3><div className="event-meta"><span><Clock3 />{timeLabel(event.starts_at)}–{timeLabel(event.ends_at)}</span><span><MapPin />{event.location}</span><span><UsersRound />{count}/{event.capacity}名</span></div><p>{event.description}</p>{documentUrlByEvent.get(event.id) && <PdfViewer title={event.title} fileName={documentUrlByEvent.get(event.id)!.fileName} url={documentUrlByEvent.get(event.id)!.url} />}</div>
-          <form action={booked ? cancelReservation : reserve}><input type="hidden" name="event_id" value={event.id}/><ConfirmSubmitButton className={booked ? "booked" : "reserve"} disabled={!booked && count >= event.capacity} message={booked ? `「${event.title}」の予約をキャンセルしますか？` : `「${event.title}」に参加予約しますか？`}>{booked ? "予約済み" : count >= event.capacity ? "満員" : "予約する"}</ConfirmSubmitButton></form>
+          <ReservationForm eventId={event.id} title={event.title} booked={booked} full={count >= event.capacity} />
         </article>;
       })}</div>
     </section>

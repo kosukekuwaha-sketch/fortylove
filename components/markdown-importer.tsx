@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
 import { parseMarkdownKnowledge, validateMarkdownFiles } from "@/lib/markdown-knowledge";
@@ -10,9 +10,11 @@ export function MarkdownImporter() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
   const revision = useRef(0);
   const router = useRouter();
+  useEffect(() => setReady(true), []);
   async function select(files: File[]) {
     const token = ++revision.current;
     const invalid = validateMarkdownFiles(files);
@@ -60,7 +62,7 @@ export function MarkdownImporter() {
   return <section className="import-panel" aria-busy={busy}>
     <h2>Markdownを読み込む</h2><p>最大10ファイル・合計1MB。1ファイル1,000件まで。同名ファイルは成功したときだけ差し替えます。</p>
     <label className={`import-drop ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); if (!busy) void select(Array.from(event.dataTransfer.files)); }}>
-      <Upload /><span>ファイルを選択、またはここへドロップ</span><input type="file" multiple accept=".md" disabled={busy} onChange={(event) => { void select(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
+      <Upload /><span>ファイルを選択、またはここへドロップ</span><input type="file" multiple accept=".md" disabled={busy || !ready} onChange={(event) => { void select(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
     </label>
     <ul className="import-files" aria-live="polite">{entries.map((entry) => <li key={entry.file.name}><strong>{entry.file.name}</strong><span>{entry.count.toLocaleString()}件 · {entry.state}</span>{entry.error && <p role="alert">{entry.error}</p>}</li>)}</ul>
     {!!entries.length && <p>{entries.length}ファイル / 合計{entries.reduce((sum, e) => sum + e.count, 0).toLocaleString()}件</p>}

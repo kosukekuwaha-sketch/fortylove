@@ -67,6 +67,7 @@ Pull RequestではLint・型検査・単体テストを常に実行し、変更�
 - [品質要件定義書](docs/quality-requirements/Fortylove_品質要件定義書.md)
 - [Chatbot・画面改善要件](docs/quality-requirements/Fortylove_改善要件書_20260906.md)
 - [Chatbot・FAQ改善の反映手順](docs/operations/chatbot-experience-rollout.md)
+- [監視・品質試験の導入手順](docs/operations/quality-rollout.md)
 - [データベース更新手順](docs/operations/database-migrations.md)
 - [本番環境の保留TODO](docs/operations/production-todo.md)
 

@@ -23,7 +23,7 @@ if [[ -z "${BASE_SHA:-}" || -z "${HEAD_SHA:-}" ]]; then
 fi
 
 mapfile -t changed_files < <(
-  git diff --name-only --diff-filter=ACMRT "${BASE_SHA}" "${HEAD_SHA}"
+  git diff --name-only --diff-filter=ACMRTD "${BASE_SHA}" "${HEAD_SHA}"
 )
 
 # An unexpected empty diff must not silently bypass validation.

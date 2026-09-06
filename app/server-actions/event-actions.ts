@@ -139,7 +139,6 @@ export async function deleteEvent(formData: FormData) {
   }
   if (document?.file_path) await client.storage.from(EVENT_DOCUMENT_BUCKET).remove([document.file_path]);
   await writeAuditLog(client, { actorId: user.id, action: "event.delete", targetType: "event", targetId: eventId });
-  redirect("/admin/events?deleted=1");
 }
 
 export async function updateAttendance(formData: FormData) {
